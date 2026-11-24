@@ -190,12 +190,26 @@ svg.board { display: block; width: 100%; min-width: 760px; height: auto; -webkit
 .form-chip.on small { color: var(--accent-ink); }
 .answers.five { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 520px; }
 .answers.five button { font: 700 1.2rem var(--f-display); }
+.stats b.weak { font: 700 .92rem var(--f-body); }
+.heat.four { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 440px; }
+.gl { stroke: var(--nut); stroke-width: 3; stroke-linecap: round; }
+.glh { fill: var(--nut); }
+.lines { display: grid; gap: 6px; }
+.gline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font: 500 .85rem var(--f-mono); }
+.gline .gl-name { font: 700 .75rem var(--f-body); color: var(--muted); margin-right: 4px; }
+.gn { padding: 2px 7px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); color: var(--ink); }
+.gn small { margin-left: 3px; color: var(--muted); font-size: .7rem; }
+.gn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.gn.on small { color: var(--accent-ink); }
+.ga { color: var(--muted); font-size: .75rem; }
 details.guide { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
 details.guide summary { cursor: pointer; font-weight: 700; }
 details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 6px; max-width: 72ch; }
 
 @media (max-width: 720px) {
   .answers, .heat { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  nav.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; border-radius: 12px; }
+  nav.tabs a { text-align: center; padding: 7px 2px; font-size: .8rem; border-radius: 8px; white-space: nowrap; }
   h1 { font-size: 1.4rem; }
   .now .sym { font-size: 1.8rem; }
 }
@@ -284,6 +298,7 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
       <div class="prompt-row">
         <div class="prompt" id="k-prompt" aria-live="polite">　</div>
         <div class="feedback" id="k-feedback" aria-live="polite"></div>
+        <label class="chk"><input type="checkbox" class="focus-chk">苦手を多めに出す</label>
         <button class="btn" id="k-skip" type="button">スキップ</button>
       </div>
     </div>
@@ -322,6 +337,7 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
           <option value="15">開放〜15フレット</option>
         </select>
       </label>
+      <label class="chk"><input type="checkbox" class="focus-chk">苦手を多めに出す</label>
       <button class="btn" id="q-skip" type="button">スキップ</button>
       <button class="btn" id="q-reset" type="button">このモードの記録をリセット</button>
     </div>
@@ -339,20 +355,45 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
   <!-- ============ コード進行 ============ -->
   <section id="v-changes" class="panel view" hidden>
     <div class="controls">
+      <div class="field">練習
+        <div class="seg">
+          <input type="radio" name="c-mode" id="c-mode-view" value="view" checked><label for="c-mode-view">見る</label>
+          <input type="radio" name="c-mode" id="c-mode-tap" value="tap"><label for="c-mode-tap">タップで答える</label>
+        </div>
+      </div>
       <label class="field">進行<select id="c-prog"></select></label>
       <label class="field">キー<select id="c-key"></select></label>
       <label class="field">テンポ <span><span class="bpmval" id="c-bpmval">100</span> BPM</span><input type="range" id="c-bpm" min="40" max="240" step="2" value="100"></label>
       <label class="field">ポジション<select id="c-win"></select></label>
+    </div>
+    <div class="controls">
+      <label class="field c-viewonly">表示する音
+        <select id="c-show">
+          <option value="tones">コードトーン (アルペジオ)</option>
+          <option value="guide">ガイドトーン (3度・7度)</option>
+          <option value="shellmix">シェル・ボイシング (6弦/5弦ルートを使い分け)</option>
+          <option value="shell6">シェル・ボイシング (6弦ルート)</option>
+          <option value="shell5">シェル・ボイシング (5弦ルート)</option>
+          <option value="drop2a">ドロップ2 (1〜4弦)</option>
+          <option value="drop2b">ドロップ2 (2〜5弦)</option>
+          <option value="drop2c">ドロップ2 (3〜6弦)</option>
+        </select>
+      </label>
+      <label class="field c-taponly" hidden>出題する音
+        <select id="c-targets">
+          <option value="all">ルート・3度・5度・7度</option>
+          <option value="guide">3度・7度だけ</option>
+        </select>
+      </label>
       <div class="field">表示
         <div class="seg">
           <input type="radio" name="c-label" id="c-label-deg" value="deg" checked><label for="c-label-deg">度数</label>
           <input type="radio" name="c-label" id="c-label-note" value="note"><label for="c-label-note">音名</label>
         </div>
       </div>
-    </div>
-    <div class="controls">
-      <label class="chk"><input type="checkbox" id="c-guide">3度・7度だけ表示</label>
-      <label class="chk"><input type="checkbox" id="c-next" checked>次のコードを予告</label>
+      <label class="chk c-viewonly"><input type="checkbox" id="c-line">ガイドトーン・ライン</label>
+      <label class="chk c-viewonly"><input type="checkbox" id="c-next" checked>次のコードを予告</label>
+      <label class="chk c-taponly" hidden><input type="checkbox" class="focus-chk">苦手を多めに出す</label>
       <label class="chk"><input type="checkbox" id="c-metro" checked>メトロノーム</label>
       <label class="chk"><input type="checkbox" id="c-sound" checked>コードを鳴らす</label>
     </div>
@@ -366,17 +407,27 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
       <div class="next" id="c-nextlbl"></div>
       <div class="beats" id="c-beats"></div>
     </div>
+    <div class="prompt-row c-taponly" hidden>
+      <div class="prompt" id="c-prompt" aria-live="polite">　</div>
+      <div class="feedback" id="c-feedback" aria-live="polite"></div>
+    </div>
     <div class="chips" id="c-chips"></div>
+    <div class="lines" id="c-lines" hidden></div>
     <div class="boardwrap"><svg class="board" id="c-svg" role="img" aria-label="ギター指板"></svg></div>
     <div class="legend" aria-hidden="true">
       <span><i style="background:var(--c-root)"></i>ルート</span>
       <span><i style="background:var(--c-third)"></i>3度</span>
       <span><i style="background:var(--c-fifth)"></i>5度</span>
       <span><i style="background:var(--c-seventh)"></i>7度 / 6度</span>
-      <span><i style="border:2px dashed var(--muted)"></i>次のコードの音</span>
-      <span><i style="background:var(--muted);box-shadow:0 0 0 2px var(--nut) inset"></i>共通音</span>
+      <span class="c-viewonly"><i style="border:2px dashed var(--muted)"></i>次のコードの音</span>
+      <span class="c-viewonly"><i style="background:var(--muted);box-shadow:0 0 0 2px var(--nut) inset"></i>共通音</span>
+      <span class="c-viewonly"><i style="background:var(--muted);box-shadow:0 0 0 3px var(--nut)"></i>ガイドトーン・ライン (矢印で次へ)</span>
     </div>
-    <p class="tip">各コードの <b>3度と7度(ガイドトーン)</b> は、次のコードへ共通音か半音でつながります。ポジションを1つに固定し、①ガイドトーンだけ → ②アルペジオ全部 → ③アルペジオからスケールへ、の順で進めます。スペースキーでスタート/ストップ。</p>
+    <div class="stats c-taponly" id="c-stats" hidden></div>
+    <div class="heat four c-taponly" id="c-heat" hidden></div>
+    <div class="controls c-taponly" hidden><button class="btn" id="c-reset" type="button">タップ練習の記録をリセット</button></div>
+    <p class="tip c-viewonly">各コードの <b>3度と7度(ガイドトーン)</b> は、次のコードへ共通音か半音でつながります。<b>ガイドトーン・ライン</b> をONにすると、その動きを矢印と下の音列で表示します。「表示する音」をシェルやドロップ2にすると、前のコードから一番近い押さえ方を自動で選びます(ボイスリーディング)。①ガイドトーンだけ → ②アルペジオ → ③スケール、の順で進めます。スペースキーでスタート/ストップ。</p>
+    <p class="tip c-taponly" hidden>コードが鳴っている間に、指定された音を <b>ポジションの枠の中で</b> タップします。最初はテンポ60前後、ポジションを1つに固定して始めます。間違えやすい度数・反応が遅い度数は自動で多めに出ます。止めた状態でも、答えると次のコードへ進みます。</p>
   </section>
 
   <details class="guide">
@@ -385,7 +436,7 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
       <li><b>音名クイズ 5分</b>：今週は5弦と6弦だけ、など範囲を絞って反射で答えられるまで。</li>
       <li><b>指板ビューア 5分</b>：1ポジションで maj7 / m7 / 7 / m7♭5 のアルペジオを度数を言いながら弾く。</li>
       <li><b>CAGED 5分</b>(週に数回、指板ビューアと交代で)：1キーで5つの形を順に押さえ、「形は？」クイズで形の名前とルートの弦を即答できるように。</li>
-      <li><b>コード進行 10分</b>：ii–V–I をゆっくりのテンポで。ガイドトーンだけ → アルペジオ → スケールの順。慣れたらキーを4度ずつ(C→F→B♭…)動かす。</li>
+      <li><b>コード進行 10分</b>：ii–V–I をゆっくりのテンポで。ガイドトーン・ラインを見て弾く → 「タップで答える」で確認 → アルペジオ → スケールの順。慣れたらキーを4度ずつ(C→F→B♭…)動かす。</li>
     </ol>
   </details>
 </div>
@@ -499,8 +550,9 @@ let saved = {};
 try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch (e) { saved = {}; }
 function persist() {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ k: saved.k, b: { root: B.root, shape: B.shape, win: B.win, label: B.label, guide: B.guide }, q: { mode: Q.mode, strings: Q.strings, max: Q.max, stats: Q.stats },
-      c: { prog: C.prog, key: C.key, bpm: C.bpm, win: C.win, label: C.label, guide: C.guide, next: C.next, metro: C.metro, sound: C.sound } }));
+    localStorage.setItem(STORE_KEY, JSON.stringify({ focus: FOCUS.on, k: saved.k, b: { root: B.root, shape: B.shape, win: B.win, label: B.label, guide: B.guide }, q: { mode: Q.mode, strings: Q.strings, max: Q.max, stats: Q.stats },
+      c: { prog: C.prog, key: C.key, bpm: C.bpm, win: C.win, label: C.label, show: C.show, line: C.line, next: C.next, metro: C.metro, sound: C.sound,
+        mode: C.mode, targets: C.targets, tstats: C.tstats } }));
   } catch (e) { /* storage unavailable */ }
 }
 
@@ -586,6 +638,14 @@ function boardSVG(o) {
     const marked = [3, 5, 7, 9, 12, 15].includes(f);
     h += `<text class="fnum${marked ? " mk" : ""}" x="${cx(f)}" y="${BOT + 38}">${f}</text>`;
   }
+  for (const ar of o.arrows || []) {
+    const x1 = cx(ar.a.f), y1 = sy(ar.a.s), x2 = cx(ar.b.f), y2 = sy(ar.b.s);
+    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+    if (len < 34) continue;
+    const ux = dx / len, uy = dy / len, tx = x2 - ux * 13, ty = y2 - uy * 13, bx = tx - ux * 9, by = ty - uy * 9;
+    h += `<line class="gl" x1="${(x1 + ux * 15).toFixed(1)}" y1="${(y1 + uy * 15).toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}"/>`;
+    h += `<polygon class="glh" points="${tx.toFixed(1)},${ty.toFixed(1)} ${(bx - uy * 5).toFixed(1)},${(by + ux * 5).toFixed(1)} ${(bx + uy * 5).toFixed(1)},${(by - ux * 5).toFixed(1)}"/>`;
+  }
   for (const m of o.markers || []) {
     const cls = ["m", "c-" + m.cat, m.dim ? "dim" : "", m.ghost ? "ghost" : "", m.common ? "common" : "", m.on ? "on" : ""].join(" ");
     const r = m.ghost ? 11 : 13.5;
@@ -622,6 +682,53 @@ const winRange = (v) => (v === "all" ? null : [+v, +v + 4]);
 const fillRoots = (sel) => { sel.innerHTML = ROOT_NAMES.map((n, i) => `<option value="${i}">${n}</option>`).join(""); };
 const radioVal = (name) => document.querySelector(`input[name="${name}"]:checked`).value;
 const setRadio = (name, v) => { const el = document.querySelector(`input[name="${name}"][value="${v}"]`); if (el) el.checked = true; };
+
+/* ---------------- 苦手の重み付け (各クイズ共通) ---------------- */
+// rec = [正解数, 出題数, 合計反応時間ms]
+const FOCUS = { on: saved.focus !== false };
+function recMean(recs) {
+  const seen = recs.filter((r) => r && r[1]);
+  return seen.length ? seen.reduce((a, r) => a + (r[2] || 0) / r[1], 0) / seen.length : 1;
+}
+function weakWeights(recs) {
+  const mean = recMean(recs) || 1;
+  return recs.map((r) => {
+    if (!FOCUS.on) return 1;
+    if (!r || !r[1]) return 2.5; // まだ出ていないものは優先
+    const acc = (r[0] + 1) / (r[1] + 2), avg = (r[2] || 0) / r[1];
+    return 0.5 + 4 * (1 - acc) + Math.min(2, Math.max(0, avg / mean - 1) * 2);
+  });
+}
+function wpick(arr, ws) {
+  const total = ws.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < arr.length; i++) { r -= ws[i]; if (r <= 0) return arr[i]; }
+  return arr[arr.length - 1];
+}
+function weakText(recs, labels) {
+  const mean = recMean(recs) || 1;
+  const items = recs.map((r, i) => {
+    if (!r || r[1] < 2) return null;
+    const acc = r[0] / r[1], avg = (r[2] || 0) / r[1];
+    if (acc >= 0.9 && avg <= mean * 1.4) return null;
+    return { i, acc, avg, score: (1 - acc) * 4 + Math.max(0, avg / mean - 1) * 2 };
+  }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 3);
+  return items.length ? items.map((x) => `${labels[x.i].replace("\n", "/")} ${x.acc < 0.9 ? Math.round(x.acc * 100) + "%" : (x.avg / 1000).toFixed(1) + "秒"}`).join(" · ") : "なし";
+}
+const tri = (n) => Array.from({ length: n }, () => [0, 0, 0]);
+const fixRecs = (arr, n) => (Array.isArray(arr) && arr.length === n ? arr.map((r) => [r[0] || 0, r[1] || 0, r[2] || 0]) : tri(n));
+function heatCells(recs, labels) {
+  return recs.map(([ok, n], i) => {
+    const L = labels[i].replace("\n", "/");
+    if (!n) return `<div title="まだ出題なし">${L}<small>—</small></div>`;
+    const p = Math.round((ok / n) * 100);
+    return `<div class="has" style="background:color-mix(in oklab, var(--ok) ${p}%, var(--bad))" title="${ok}/${n}">${L}<small>${p}%</small></div>`;
+  }).join("");
+}
+document.querySelectorAll(".focus-chk").forEach((el) => {
+  el.checked = FOCUS.on;
+  el.addEventListener("change", () => { FOCUS.on = el.checked; document.querySelectorAll(".focus-chk").forEach((o) => (o.checked = FOCUS.on)); persist(); });
+});
 
 /* ================= 指板ビューア ================= */
 const B = Object.assign({ root: 0, shape: 0, win: "7", label: "deg", guide: false }, saved.b || {});
@@ -725,7 +832,7 @@ function strumVoicing(vs, when, gain = 0.3) {
 }
 
 const sk = saved.k || {};
-const emptyK = () => ({ ok: 0, n: 0, streak: 0, best: 0 });
+const emptyK = () => ({ ok: 0, n: 0, streak: 0, best: 0, f: tri(5) });
 const KG = Object.assign({ mode: "view", root: 0, q: "maj", form: "C", over: -1, label: "deg" }, sk,
   { stats: Object.assign({ shape: emptyK(), find: emptyK() }, sk.stats || {}), cur: null, lock: false, result: null, tap: null, timer: null, cycleTimers: [] });
 if (KG.over >= ITEMS.length) KG.over = -1;
@@ -801,7 +908,7 @@ function renderCaged(scroll) {
     }
     if (KG.result && c.shown) win = formWin(c.shownBase);
     const st = KG.stats[KG.mode];
-    $("#k-stats").innerHTML = `<span>正解率<b>${st.n ? Math.round((st.ok / st.n) * 100) + "%" : "—"}</b></span><span>回答数<b>${st.n}</b></span><span>連続正解<b>${st.streak}</b></span><span>ベスト<b>${st.best}</b></span>`;
+    $("#k-stats").innerHTML = `<span>正解率<b>${st.n ? Math.round((st.ok / st.n) * 100) + "%" : "—"}</b></span><span>回答数<b>${st.n}</b></span><span>連続正解<b>${st.streak}</b></span><span>ベスト<b>${st.best}</b></span><span>苦手<b class="weak">${weakText(fixRecs(st.f, 5), FORM_NAMES.map((n) => n + "形"))}</b></span>`;
   }
   kSvg.innerHTML = boardSVG({ markers: ms, win });
   if (scroll) {
@@ -812,17 +919,22 @@ function renderCaged(scroll) {
 function kNextQ() {
   clearTimeout(KG.timer);
   KG.lock = false; KG.result = null; KG.tap = null;
+  const st = KG.stats[KG.mode]; st.f = fixRecs(st.f, 5);
+  const fw = weakWeights(st.f);
   let root, form, tries = 0;
-  do { root = Math.floor(Math.random() * 12); form = FORM_NAMES[Math.floor(Math.random() * 5)]; tries++; }
+  do { root = Math.floor(Math.random() * 12); form = wpick(FORM_NAMES, fw); tries++; }
   while (KG.cur && KG.cur.root === root && KG.cur.form === form && tries < 10);
   const rootName = ROOT_NAMES[root], bases = formBases(root, KG.q, form);
   const b = bases[Math.floor(Math.random() * bases.length)];
   KG.cur = { root, rootName, form, bases, vs: voicing(KG.q, form, b), base: b };
   if (KG.mode === "shape") { KG.cur.shown = KG.cur.vs; KG.cur.shownBase = b; }
+  KG.t0 = performance.now();
   renderCaged(true);
 }
 function kRecord(ok) {
-  const st = KG.stats[KG.mode];
+  const st = KG.stats[KG.mode]; st.f = fixRecs(st.f, 5);
+  const r = st.f[FORM_NAMES.indexOf(KG.cur.form)];
+  r[1]++; r[2] += performance.now() - KG.t0; if (ok) r[0]++;
   st.n++; if (ok) { st.ok++; st.streak++; st.best = Math.max(st.best, st.streak); } else st.streak = 0;
   kPersist();
 }
@@ -895,7 +1007,8 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ================= 音名クイズ ================= */
-const emptyStats = () => ({ ok: 0, n: 0, time: 0, streak: 0, best: 0, pc: Array.from({ length: 12 }, () => [0, 0]) });
+const emptyStats = () => ({ ok: 0, n: 0, time: 0, streak: 0, best: 0, pc: tri(12), str: tri(6) });
+const fixStats = (st) => { st.pc = fixRecs(st.pc, 12); st.str = fixRecs(st.str, 6); return st; };
 const sq = saved.q || {};
 const Q = {
   mode: sq.mode || "name",
@@ -929,39 +1042,50 @@ function nextQ() {
   Q.lock = false; Q.result = null; Q.wrong = null; Q.found = new Set(); Q.miss = 0;
   const pos = allowed();
   if (!pos.length) { Q.cur = null; renderQuiz(); return; }
-  let p;
-  for (let tries = 0; tries < 20; tries++) {
-    p = pos[Math.floor(Math.random() * pos.length)];
-    if (key(p.s, p.f) !== Q.prevKey) break;
+  const st = fixStats(Q.stats[Q.mode]);
+  const pw = weakWeights(st.pc), sw = weakWeights(st.str).map((w) => (FOCUS.on ? 0.5 + w / 3 : 1));
+  const fresh = pos.length > 1 ? pos.filter((p) => key(p.s, p.f) !== Q.prevKey) : pos;
+  if (Q.mode === "interval") {
+    // ルートから同じポジション内(±4フレット・3弦以内)の音。度数ごとの組数の偏りをならしてから重み付け
+    const pairs = [], count = Array(12).fill(0);
+    for (const p of fresh) for (const t of pos) {
+      if (Math.abs(t.f - p.f) > 4 || Math.abs(t.s - p.s) > 3 || (t.s === p.s && t.f === p.f)) continue;
+      const iv = (pcAt(t.s, t.f) - pcAt(p.s, p.f) + 12) % 12;
+      pairs.push({ p, t, iv }); count[iv]++;
+    }
+    if (!pairs.length) { Q.cur = null; renderQuiz(); return; }
+    const x = wpick(pairs, pairs.map((q) => (pw[q.iv] * sw[q.t.s]) / count[q.iv]));
+    Q.prevKey = key(x.p.s, x.p.f);
+    Q.cur = { s: x.p.s, f: x.p.f, ts: x.t.s, tf: x.t.f, pc: x.iv };
+  } else if (Q.mode === "all") {
+    let pcs = [...new Set(pos.map((p) => pcAt(p.s, p.f)))];
+    if (pcs.length > 1) pcs = pcs.filter((pc) => pc !== Q.prevPc);
+    const pc = wpick(pcs, pcs.map((c) => pw[c]));
+    Q.prevPc = pc;
+    Q.cur = { pc, name: randName(pc), targets: pos.filter((q) => pcAt(q.s, q.f) === pc).map((q) => key(q.s, q.f)) };
+  } else {
+    const p = wpick(fresh, fresh.map((q) => pw[pcAt(q.s, q.f)] * sw[q.s]));
+    Q.prevKey = key(p.s, p.f);
+    const pc = pcAt(p.s, p.f);
+    Q.cur = Q.mode === "name" ? { s: p.s, f: p.f, pc } : { s: p.s, pc, name: randName(pc) };
   }
-  Q.prevKey = key(p.s, p.f);
-  const pc = pcAt(p.s, p.f);
-  if (Q.mode === "name") Q.cur = { s: p.s, f: p.f, pc };
-  else if (Q.mode === "find") Q.cur = { s: p.s, pc, name: randName(pc) };
-  else if (Q.mode === "interval") {
-    // ルートから同じポジション内(±4フレット・3弦以内)にある音を出題
-    const near = pos.filter((q) => Math.abs(q.f - p.f) <= 4 && Math.abs(q.s - p.s) <= 3 && !(q.s === p.s && q.f === p.f));
-    const t = near[Math.floor(Math.random() * near.length)];
-    if (!t) { Q.prevKey = null; return nextQ(); }
-    Q.cur = { s: p.s, f: p.f, ts: t.s, tf: t.f, pc: (pcAt(t.s, t.f) - pc + 12) % 12 };
-  }
-  else Q.cur = { pc, name: randName(pc), targets: pos.filter((q) => pcAt(q.s, q.f) === pc).map((q) => key(q.s, q.f)) };
   Q.t0 = performance.now();
   renderQuiz();
 }
-function record(pc, ok) {
-  const st = Q.stats[Q.mode];
-  st.n++; st.pc[pc][1]++;
+function record(pc, ok, s) {
+  const st = fixStats(Q.stats[Q.mode]), dt = performance.now() - Q.t0;
+  st.n++; st.pc[pc][1]++; st.pc[pc][2] += dt;
+  if (s != null) { st.str[s][1]++; st.str[s][2] += dt; if (ok) st.str[s][0]++; }
   if (ok) { st.ok++; st.pc[pc][0]++; st.streak++; st.best = Math.max(st.best, st.streak); }
   else st.streak = 0;
-  st.time += performance.now() - Q.t0;
+  st.time += dt;
   persist();
 }
 function answerName(pc) {
   if (Q.lock || !Q.cur || (Q.mode !== "name" && Q.mode !== "interval")) return;
   Q.lock = true;
   const ok = pc === Q.cur.pc;
-  record(Q.cur.pc, ok);
+  record(Q.cur.pc, ok, Q.mode === "interval" ? Q.cur.ts : Q.cur.s);
   Q.result = { ok, chosen: pc };
   if (Q.mode === "interval") { const c = audio(); pluck(midiAt(Q.cur.s, Q.cur.f)); if (c) pluck(midiAt(Q.cur.ts, Q.cur.tf), c.currentTime + 0.35); }
   else pluck(midiAt(Q.cur.s, Q.cur.f));
@@ -976,7 +1100,7 @@ function tapQuiz(s, f) {
     if (s !== Q.cur.s) { $("#q-feedback").className = "feedback"; $("#q-feedback").textContent = `${Q.cur.s + 1}弦の上で探してください`; return; }
     Q.lock = true;
     const ok = pc === Q.cur.pc;
-    record(Q.cur.pc, ok);
+    record(Q.cur.pc, ok, Q.cur.s);
     Q.result = { ok };
     Q.wrong = ok ? null : { s, f };
     Q.tapped = { s, f };
@@ -990,7 +1114,7 @@ function tapQuiz(s, f) {
       if (Q.found.size === Q.cur.targets.length) {
         Q.lock = true;
         const ok = Q.miss === 0;
-        record(Q.cur.pc, ok);
+        record(Q.cur.pc, ok, null);
         Q.result = { ok };
         Q.timer = setTimeout(nextQ, 1100);
       }
@@ -1054,16 +1178,14 @@ function renderQuiz() {
   renderStats();
 }
 function renderStats() {
-  const st = Q.stats[Q.mode];
+  const st = fixStats(Q.stats[Q.mode]);
   const pct = st.n ? Math.round((st.ok / st.n) * 100) + "%" : "—";
   const avg = st.n ? (st.time / st.n / 1000).toFixed(1) + "秒" : "—";
-  $("#q-stats").innerHTML = `<span>正解率<b>${pct}</b></span><span>回答数<b>${st.n}</b></span><span>平均時間<b>${avg}</b></span><span>連続正解<b>${st.streak}</b></span><span>ベスト<b>${st.best}</b></span>`;
   const L = answerLabels();
-  $("#q-heat").innerHTML = st.pc.map(([ok, n], pc) => {
-    if (!n) return `<div title="まだ出題なし">${L[pc].replace("\n", "/")}<small>—</small></div>`;
-    const p = Math.round((ok / n) * 100);
-    return `<div class="has" style="background:color-mix(in oklab, var(--ok) ${p}%, var(--bad))" title="${ok}/${n}">${L[pc].replace("\n", "/")}<small>${p}%</small></div>`;
-  }).join("");
+  let weak = weakText(st.pc, L);
+  if (Q.mode !== "all") { const ws = weakText(st.str, ["1弦", "2弦", "3弦", "4弦", "5弦", "6弦"]); if (ws !== "なし") weak = (weak === "なし" ? "" : weak + " · ") + ws; }
+  $("#q-stats").innerHTML = `<span>正解率<b>${pct}</b></span><span>回答数<b>${st.n}</b></span><span>平均時間<b>${avg}</b></span><span>連続正解<b>${st.streak}</b></span><span>ベスト<b>${st.best}</b></span><span>苦手<b class="weak">${weak}</b></span>`;
+  $("#q-heat").innerHTML = heatCells(st.pc, L);
 }
 setupBoard(qSvg, tapQuiz);
 $("#q-answers").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) answerName(+b.dataset.pc); });
@@ -1075,16 +1197,20 @@ $("#q-reset").addEventListener("click", () => { Q.stats[Q.mode] = emptyStats(); 
 
 /* ================= コード進行 ================= */
 const sc = saved.c || {};
-const C = Object.assign({ prog: 0, key: 0, bpm: 100, win: "all", label: "deg", guide: false, next: true, metro: true, sound: true }, sc,
-  { ci: 0, beat: 0, playing: false });
+const emptyTap = () => ({ ok: 0, n: 0, time: 0, streak: 0, best: 0, pc: tri(4) });
+const C = Object.assign({ prog: 0, key: 0, bpm: 100, win: "all", label: "deg", show: sc.guide ? "guide" : "tones", line: false,
+  next: true, metro: true, sound: true, mode: "view", targets: "all" }, sc, { ci: 0, beat: 0, playing: false, task: null });
+delete C.guide;
+C.tstats = Object.assign(emptyTap(), sc.tstats || {}); C.tstats.pc = fixRecs(C.tstats.pc, 4);
 if (C.prog >= PROGS.length) C.prog = 0;
+const ROLE_NAMES = ["ルート", "3度", "5度", "7度"];
 const cSvg = $("#c-svg");
 $("#c-prog").innerHTML = PROGS.map((p, i) => `<option value="${i}">${p.name}</option>`).join("");
 fillRoots($("#c-key")); winOptions($("#c-win"));
-$("#c-prog").value = C.prog; $("#c-key").value = C.key; $("#c-win").value = C.win;
+$("#c-prog").value = C.prog; $("#c-key").value = C.key; $("#c-win").value = C.win; $("#c-show").value = C.show; $("#c-targets").value = C.targets;
 $("#c-bpm").value = C.bpm; $("#c-bpmval").textContent = C.bpm;
-setRadio("c-label", C.label);
-$("#c-guide").checked = C.guide; $("#c-next").checked = C.next; $("#c-metro").checked = C.metro; $("#c-sound").checked = C.sound;
+setRadio("c-label", C.label); setRadio("c-mode", C.mode);
+$("#c-line").checked = C.line; $("#c-next").checked = C.next; $("#c-metro").checked = C.metro; $("#c-sound").checked = C.sound;
 
 function keyLabels() {
   const m = PROGS[C.prog].minor ? "m" : "";
@@ -1098,25 +1224,209 @@ function chordList() {
     return { rootName, rpc: namePc(rootName), arp, beats, sym: rootName + arp.suffix, rn: acc + (arp.minor ? r.toLowerCase() : r) + arp.rn };
   });
 }
-function toneAt(ch, s, f) {
+// i = コードトーンの役割 (0=ルート 1=3度 2=5度 3=7度/6度)
+const roleCat = (ch, i) => category(ch.arp.degs[i] === "6" ? "7" : ch.arp.degs[i]);
+const tLabel = (ch, i) => (C.label === "deg" ? prettyDeg(ch.arp.degs[i]) : spell(ch.rootName, ch.arp.semis[i], ch.arp.degs[i]));
+const tName = (ch, i) => spell(ch.rootName, ch.arp.semis[i], ch.arp.degs[i]);
+const rolePc = (ch, i) => (ch.rpc + ch.arp.semis[i]) % 12;
+function toneAt(ch, s, f, guideOnly) {
   const i = ch.arp.semis.indexOf((pcAt(s, f) - ch.rpc + 12) % 12);
-  if (i < 0) return null;
-  const d = ch.arp.degs[i], cat = category(d === "6" ? "7" : d);
-  if (C.guide && cat !== "third" && cat !== "seventh") return null;
-  return { d, cat, label: C.label === "deg" ? prettyDeg(d) : spell(ch.rootName, ch.arp.semis[i], d) };
+  if (i < 0 || (guideOnly && i !== 1 && i !== 3)) return null;
+  return { i, cat: roleCat(ch, i), label: tLabel(ch, i) };
 }
-function renderChanges() {
-  const list = chordList(), ch = list[C.ci % list.length], nx = list[(C.ci + 1) % list.length];
-  const win = winRange(C.win);
-  const showNext = C.next && list.length > 1 && (!C.playing || C.beat === ch.beats - 1);
-  const ms = [];
-  for (let s = 0; s < 6; s++) for (let f = 0; f <= FRETS; f++) {
-    const out = win && (f < win[0] || f > win[1]);
-    const t = toneAt(ch, s, f), n = showNext ? toneAt(nx, s, f) : null;
-    if (t) ms.push({ s, f, cat: t.cat, label: t.label, dim: out, common: !!n && !out });
-    else if (n && !out) ms.push({ s, f, cat: n.cat, label: n.label, ghost: true });
+
+/* ---- ボイシング (シェル / ドロップ2) ---- */
+// 低音弦 → 高音弦の順に、各弦に置く役割
+const DROP2 = [[2, 0, 1, 3], [3, 1, 2, 0], [0, 2, 3, 1], [1, 3, 0, 2]]; // 5-1-3-7 / 7-3-5-1 / 1-5-7-3 / 3-7-1-5
+const VOICING_SETS = {
+  shell6: [{ strings: [5, 4, 3], orders: [[0, 1, 3]] }, { strings: [5, 3, 2], orders: [[0, 3, 1]] }],
+  shell5: [{ strings: [4, 3, 2], orders: [[0, 1, 3]] }, { strings: [4, 2, 1], orders: [[0, 3, 1]] }],
+  drop2a: [{ strings: [3, 2, 1, 0], orders: DROP2 }],
+  shellmix: null,
+  drop2b: [{ strings: [4, 3, 2, 1], orders: DROP2 }],
+  drop2c: [{ strings: [5, 4, 3, 2], orders: DROP2 }],
+};
+VOICING_SETS.shellmix = [...VOICING_SETS.shell6, ...VOICING_SETS.shell5];
+function voicingCands(ch, type) {
+  const out = [];
+  for (const set of VOICING_SETS[type]) for (const order of set.orders) {
+    const opts = set.strings.map((s, j) => { const fs = []; for (let f = 0; f <= FRETS; f++) if (pcAt(s, f) === rolePc(ch, order[j])) fs.push(f); return fs; });
+    const rec = (j, acc) => {
+      if (j === opts.length) {
+        const midis = acc.map((f, k) => midiAt(set.strings[k], f));
+        for (let k = 1; k < midis.length; k++) if (midis[k] <= midis[k - 1]) return;
+        const fretted = acc.filter((f) => f > 0);
+        if (fretted.length && Math.max(...fretted) - Math.min(...fretted) > 4) return; // 指が届く範囲
+        if (acc.includes(0) && Math.max(...acc) > 4) return;                          // 開放弦はローポジションだけ
+        out.push(acc.map((f, k) => ({ s: set.strings[k], f, i: order[k] })));
+        return;
+      }
+      for (const f of opts[j]) rec(j + 1, [...acc, f]);
+    };
+    rec(0, []);
   }
-  cSvg.innerHTML = boardSVG({ markers: ms, win });
+  return out;
+}
+const sortedMidis = (v) => v.map((n) => midiAt(n.s, n.f)).sort((a, b) => a - b);
+// 前のコードから音の移動が最小になる押さえ方を順に選ぶ
+function voicingPath(list, type, win) {
+  const center = win ? (win[0] + win[1]) / 2 : 5;
+  const res = []; let prev = null;
+  for (const ch of list) {
+    let best = null, bs = Infinity;
+    for (const v of voicingCands(ch, type)) {
+      const avg = v.reduce((a, n) => a + n.f, 0) / v.length;
+      let score = Math.abs(avg - center) * (prev ? 0.3 : 1);
+      if (win) score += v.reduce((t, n) => t + Math.max(0, win[0] - n.f, n.f - win[1]), 0) * 4; // 枠から遠いほど減点
+      if (prev && prev.length === v.length) { const a = sortedMidis(prev), b = sortedMidis(v); score += a.reduce((t, m, k) => t + Math.abs(m - b[k]), 0) * 0.5; }
+      if (score < bs) { bs = score; best = v; }
+    }
+    res.push(best); if (best) prev = best;
+  }
+  return res;
+}
+
+/* ---- ガイドトーン・ライン ---- */
+function placeMidi(m, win, prevF) {
+  const target = prevF != null ? prevF : win ? (win[0] + win[1]) / 2 : 5;
+  let best = null, bs = Infinity;
+  for (let s = 0; s < 6; s++) {
+    const f = m - TUNING[s];
+    if (f < 0 || f > FRETS) continue;
+    const score = (win && (f < win[0] || f > win[1]) ? 10 : 0) + Math.abs(f - target) * 0.6 + (s >= 4 ? 3 : 0);
+    if (score < bs) { bs = score; best = { s, f }; }
+  }
+  return best;
+}
+function guidePath(list, win) {
+  // 3度と7度を2声として、毎回「動きが小さい方」の割り当てを選ぶ (D3〜D5 の範囲)
+  const near = (pc, m) => { let b = null; for (let x = 50; x <= 74; x++) if (x % 12 === pc && (b === null || Math.abs(x - m) < Math.abs(b - m))) b = x; return b; };
+  const c0 = list[0];
+  let v = [near(rolePc(c0, 1), 60), near(rolePc(c0, 3), 64)];
+  const lines = [[{ m: v[0], i: 1 }], [{ m: v[1], i: 3 }]];
+  for (let k = 1; k < list.length; k++) {
+    const ch = list[k], p3 = rolePc(ch, 1), p7 = rolePc(ch, 3);
+    const a = [near(p3, v[0]), near(p7, v[1])], b = [near(p7, v[0]), near(p3, v[1])];
+    const ca = Math.abs(a[0] - v[0]) + Math.abs(a[1] - v[1]), cb = Math.abs(b[0] - v[0]) + Math.abs(b[1] - v[1]);
+    if (ca <= cb) { v = a; lines[0].push({ m: a[0], i: 1 }); lines[1].push({ m: a[1], i: 3 }); }
+    else { v = b; lines[0].push({ m: b[0], i: 3 }); lines[1].push({ m: b[1], i: 1 }); }
+  }
+  for (const L of lines) { let pf = null; for (const x of L) { x.pos = placeMidi(x.m, win, pf); pf = x.pos.f; } }
+  return lines;
+}
+let dCache = { k: null, v: null };
+function derived() {
+  const k = [C.prog, C.key, C.win, C.show].join("|");
+  if (dCache.k !== k) {
+    const list = chordList(), win = winRange(C.win);
+    dCache = { k, v: { list, voicings: VOICING_SETS[C.show] ? voicingPath(list, C.show, win) : [], lines: guidePath(list, win) } };
+  }
+  return dCache.v;
+}
+
+/* ---- タップで答える ---- */
+function newTask(ci, fromClock) {
+  const prev = C.task;
+  let note = "";
+  if (fromClock && prev && !prev.answer && prev.ci !== ci) {
+    tapRecord(prev.role, false, prev.limit);
+    const pc = derived().list[prev.ci];
+    note = `時間切れ：${pc.sym} の ${roleText(pc, prev.role)} は ${tName(pc, prev.role)}`;
+  }
+  const roles = C.targets === "guide" ? [1, 3] : [0, 1, 2, 3];
+  const ws = weakWeights(C.tstats.pc);
+  const role = wpick(roles, roles.map((r) => ws[r]));
+  const list = derived().list, ch = list[ci % list.length];
+  C.task = { ci, role, t0: performance.now(), answer: null, note, limit: (ch.beats * 60000) / C.bpm };
+}
+const roleText = (ch, r) => (r === 0 ? "ルート" : prettyDeg(ch.arp.degs[r]) + "度");
+function tapRecord(role, ok, dt) {
+  const st = C.tstats, r = st.pc[role];
+  st.n++; r[1]++; r[2] += dt; st.time += dt;
+  if (ok) { st.ok++; r[0]++; st.streak++; st.best = Math.max(st.best, st.streak); } else st.streak = 0;
+  persist();
+}
+function cTap(s, f) {
+  pluck(midiAt(s, f));
+  if (C.mode !== "tap" || !C.task || C.task.answer) return;
+  const ch = derived().list[C.task.ci], win = winRange(C.win);
+  if (win && (f < win[0] || f > win[1])) {
+    const fb = $("#c-feedback"); fb.className = "feedback"; fb.textContent = "ポジションの枠の中で答えてください"; return;
+  }
+  const ok = pcAt(s, f) === rolePc(ch, C.task.role), dt = performance.now() - C.task.t0;
+  C.task.answer = { ok, s, f, dt };
+  tapRecord(C.task.role, ok, dt);
+  renderChanges();
+  if (!C.playing) {
+    const t = C.task;
+    setTimeout(() => { if (C.task === t && !C.playing && C.mode === "tap") jump(C.ci + 1); }, ok ? 800 : 1800);
+  }
+}
+
+/* ---- 描画 ---- */
+function renderChanges() {
+  const d = derived(), list = d.list, n = list.length, ch = list[C.ci % n], ni = (C.ci + 1) % n, nx = list[ni];
+  const win = winRange(C.win), tap = C.mode === "tap";
+  document.querySelectorAll("#v-changes .c-viewonly").forEach((el) => (el.hidden = tap));
+  document.querySelectorAll("#v-changes .c-taponly").forEach((el) => (el.hidden = !tap));
+  const ms = [], arrows = [];
+  if (!tap) {
+    const showNext = C.next && n > 1 && (!C.playing || C.beat === ch.beats - 1);
+    if (VOICING_SETS[C.show]) {
+      const cur = d.voicings[C.ci] || [], nxt = showNext ? d.voicings[ni] || [] : [];
+      const curK = new Set(cur.map((x) => key(x.s, x.f)));
+      for (const x of nxt) if (!curK.has(key(x.s, x.f))) ms.push({ s: x.s, f: x.f, cat: roleCat(nx, x.i), label: tLabel(nx, x.i), ghost: true });
+      for (const x of cur) ms.push({ s: x.s, f: x.f, cat: roleCat(ch, x.i), label: tLabel(ch, x.i), common: nxt.some((y) => y.s === x.s && y.f === x.f) });
+    } else {
+      const g = C.show === "guide";
+      for (let s = 0; s < 6; s++) for (let f = 0; f <= FRETS; f++) {
+        const out = win && (f < win[0] || f > win[1]);
+        const t = toneAt(ch, s, f, g), u = showNext ? toneAt(nx, s, f, g) : null;
+        if (t) ms.push({ s, f, cat: t.cat, label: t.label, dim: out, common: !!u && !out });
+        else if (u && !out) ms.push({ s, f, cat: u.cat, label: u.label, ghost: true });
+      }
+    }
+    if (C.line) {
+      for (const L of d.lines) {
+        const a = L[C.ci], b = L[ni];
+        const hit = ms.find((m) => m.s === a.pos.s && m.f === a.pos.f && !m.ghost);
+        if (hit) { hit.on = true; hit.dim = false; } else ms.push({ s: a.pos.s, f: a.pos.f, cat: roleCat(ch, a.i), label: tLabel(ch, a.i), on: true });
+        if (n > 1 && key(a.pos.s, a.pos.f) !== key(b.pos.s, b.pos.f)) {
+          if (!ms.some((m) => m.s === b.pos.s && m.f === b.pos.f)) ms.unshift({ s: b.pos.s, f: b.pos.f, cat: roleCat(nx, b.i), label: tLabel(nx, b.i), ghost: true });
+          arrows.push({ a: a.pos, b: b.pos });
+        }
+      }
+      $("#c-lines").innerHTML = d.lines.map((L, v) => `<div class="gline"><span class="gl-name">ライン${v + 1}</span>` +
+        L.map((x, k) => `<span class="gn${k === C.ci ? " on" : ""}">${tName(list[k], x.i)}<small>${prettyDeg(list[k].arp.degs[x.i])}</small></span>`).join('<span class="ga">→</span>') + `</div>`).join("");
+    }
+    $("#c-lines").hidden = !C.line;
+  } else {
+    $("#c-lines").hidden = true;
+    const t = C.task, pr = $("#c-prompt"), fb = $("#c-feedback");
+    fb.className = "feedback"; fb.textContent = "";
+    if (!t) pr.textContent = "スタートするか、コードを選ぶと出題します";
+    else {
+      const tc = list[t.ci];
+      pr.innerHTML = `<span class="nn">${tc.sym}</span> の <span class="nn">${roleText(tc, t.role)}</span> をタップ`;
+      if (t.answer) {
+        for (let s = 0; s < 6; s++) for (let f = 0; f <= FRETS; f++) {
+          if (win && (f < win[0] || f > win[1])) continue;
+          const u = toneAt(tc, s, f, false);
+          if (u && !(s === t.answer.s && f === t.answer.f)) ms.push({ s, f, cat: u.cat, label: u.label, common: u.i === t.role });
+        }
+        const tu = toneAt(tc, t.answer.s, t.answer.f, false);
+        ms.push({ s: t.answer.s, f: t.answer.f, cat: t.answer.ok ? "ok" : "bad", label: tu ? tu.label : (C.label === "deg" ? "×" : SHARP[pcAt(t.answer.s, t.answer.f)]) });
+        fb.className = "feedback " + (t.answer.ok ? "ok" : "bad");
+        fb.textContent = t.answer.ok ? `正解！ ${(t.answer.dt / 1000).toFixed(1)}秒` : `正解は ${tName(tc, t.role)} (リングの位置)`;
+      } else if (t.note) { fb.className = "feedback bad"; fb.textContent = t.note; }
+    }
+    const st = C.tstats;
+    $("#c-stats").innerHTML = `<span>正解率<b>${st.n ? Math.round((st.ok / st.n) * 100) + "%" : "—"}</b></span><span>回答数<b>${st.n}</b></span>` +
+      `<span>平均時間<b>${st.n ? (st.time / st.n / 1000).toFixed(1) + "秒" : "—"}</b></span><span>連続正解<b>${st.streak}</b></span><span>ベスト<b>${st.best}</b></span>` +
+      `<span>苦手<b class="weak">${weakText(st.pc, ROLE_NAMES)}</b></span>`;
+    $("#c-heat").innerHTML = heatCells(st.pc, ROLE_NAMES);
+  }
+  cSvg.innerHTML = boardSVG({ markers: ms, win, arrows });
   $("#c-sym").textContent = ch.sym;
   $("#c-rn").textContent = ch.rn;
   $("#c-nextlbl").innerHTML = `次 → <b>${nx.sym}</b>`;
@@ -1126,13 +1436,23 @@ function renderChanges() {
   $("#c-chips").innerHTML = list.map((c, i) => `<button type="button" class="chip${i === C.ci ? " on" : ""}" data-i="${i}"><b>${c.sym}</b><small>${c.rn}</small></button>`).join("");
   $("#c-play").textContent = C.playing ? "■ ストップ" : "▶ スタート";
 }
-function strum(ch, t) {
-  const third = ch.arp.semis[1], sev = ch.arp.semis[3];
-  const root = 40 + ((ch.rpc - 4 + 12) % 12);
+
+/* ---- 音 ---- */
+function strum(ci, t) {
+  if (!audio()) return;
+  const d = derived(), ch = d.list[ci % d.list.length];
+  const bass = 40 + ((ch.rpc - 4 + 12) % 12);
   const place = (pc) => 52 + ((pc - 4 + 12) % 12);
-  const up = [place((ch.rpc + third) % 12), place((ch.rpc + sev) % 12)].sort((a, b) => a - b);
-  pluck(root, t, 0.4);
-  up.forEach((m, i) => pluck(m, t + 0.025 * (i + 1), 0.26));
+  let up;
+  if (C.mode === "view" && d.voicings[ci]) {
+    up = d.voicings[ci].map((x) => midiAt(x.s, x.f));
+    if (!C.show.startsWith("shell")) pluck(bass, t, 0.32); // ドロップ2はベースを足す
+  } else if (C.mode === "view" && C.line) {
+    up = d.lines.map((L) => L[ci].m); pluck(bass, t, 0.4);
+  } else {
+    up = [place(rolePc(ch, 1)), place(rolePc(ch, 3))]; pluck(bass, t, 0.4);
+  }
+  up.sort((a, b) => a - b).forEach((m, i) => pluck(m, (t || ctx.currentTime) + 0.025 * (i + 1), 0.24));
 }
 let schedTimer = null, nextT = 0, sPos = { ci: 0, beat: 0 }, runId = 0;
 function cSched() {
@@ -1141,51 +1461,68 @@ function cSched() {
   while (nextT < ctx.currentTime + 0.12) {
     const { ci, beat } = sPos, ch = list[ci % list.length];
     if (C.metro) click(nextT, beat % 4 === 0);
-    if (beat === 0 && C.sound) strum(ch, nextT);
+    if (beat === 0 && C.sound) strum(ci, nextT);
     const id = runId;
-    setTimeout(() => { if (id !== runId) return; C.ci = ci; C.beat = beat; renderChanges(); }, Math.max(0, (nextT - ctx.currentTime) * 1000));
+    setTimeout(() => {
+      if (id !== runId) return;
+      C.ci = ci; C.beat = beat;
+      if (C.mode === "tap" && beat === 0) newTask(ci, true);
+      renderChanges();
+    }, Math.max(0, (nextT - ctx.currentTime) * 1000));
     nextT += 60 / C.bpm;
     sPos = beat + 1 >= ch.beats ? { ci: (ci + 1) % list.length, beat: 0 } : { ci, beat: beat + 1 };
   }
 }
 function cStart() {
   if (!audio()) return;
-  runId++; C.playing = true; C.beat = 0;
+  runId++; C.playing = true; C.beat = 0; C.task = null;
   sPos = { ci: C.ci, beat: 0 }; nextT = ctx.currentTime + 0.08;
   clearInterval(schedTimer); schedTimer = setInterval(cSched, 25); cSched();
   renderChanges();
 }
 function cStop() {
-  runId++; C.playing = false; clearInterval(schedTimer); C.beat = 0; renderChanges();
+  runId++; C.playing = false; clearInterval(schedTimer); C.beat = 0;
+  if (C.mode === "tap" && C.task && !C.task.answer) C.task.t0 = performance.now();
+  renderChanges();
 }
 function jump(i) {
   const n = chordList().length;
   C.ci = ((i % n) + n) % n; C.beat = 0;
-  if (C.playing) { runId++; sPos = { ci: C.ci, beat: 0 }; nextT = ctx.currentTime + 0.05; }
-  else { const list = chordList(); if (C.sound) strum(list[C.ci], 0); }
+  if (C.playing) { runId++; C.task = null; sPos = { ci: C.ci, beat: 0 }; nextT = ctx.currentTime + 0.05; }
+  else { if (C.sound) strum(C.ci, 0); if (C.mode === "tap") newTask(C.ci, false); }
   renderChanges();
 }
-setupBoard(cSvg, (s, f) => pluck(midiAt(s, f)));
+setupBoard(cSvg, cTap);
 $("#c-play").addEventListener("click", () => (C.playing ? cStop() : cStart()));
 $("#c-prev").addEventListener("click", () => jump(C.ci - 1));
 $("#c-fwd").addEventListener("click", () => jump(C.ci + 1));
 $("#c-chips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) jump(+b.dataset.i); });
-$("#c-prog").addEventListener("change", () => { C.prog = +$("#c-prog").value; if (C.playing) cStop(); C.ci = 0; keyLabels(); persist(); renderChanges(); });
+$("#c-prog").addEventListener("change", () => {
+  C.prog = +$("#c-prog").value; if (C.playing) cStop(); C.ci = 0; keyLabels(); persist();
+  if (C.mode === "tap") newTask(0, false);
+  renderChanges();
+});
 $("#c-bpm").addEventListener("input", () => { C.bpm = +$("#c-bpm").value; $("#c-bpmval").textContent = C.bpm; persist(); });
-const cChange = () => {
-  C.key = +$("#c-key").value; C.win = $("#c-win").value; C.label = radioVal("c-label");
-  C.guide = $("#c-guide").checked; C.next = $("#c-next").checked; C.metro = $("#c-metro").checked; C.sound = $("#c-sound").checked;
-  persist(); renderChanges();
-  const w = winRange(C.win); if (w) scrollToFrets(cSvg, w[0], w[1]);
+$("#c-reset").addEventListener("click", () => { C.tstats = emptyTap(); persist(); renderChanges(); });
+const cChange = (e) => {
+  const prevMode = C.mode;
+  C.key = +$("#c-key").value; C.win = $("#c-win").value; C.label = radioVal("c-label"); C.mode = radioVal("c-mode");
+  C.show = $("#c-show").value; C.targets = $("#c-targets").value;
+  C.line = $("#c-line").checked; C.next = $("#c-next").checked; C.metro = $("#c-metro").checked; C.sound = $("#c-sound").checked;
+  persist();
+  if (C.mode === "tap" && (prevMode !== "tap" || (e && e.target.id === "c-targets"))) newTask(C.ci, false);
+  renderChanges();
+  const w = winRange(C.win); if (w && e && (e.target.id === "c-win" || e.target.name === "c-mode")) scrollToFrets(cSvg, w[0], w[1]);
 };
-["#c-key", "#c-win", "#c-guide", "#c-next", "#c-metro", "#c-sound"].forEach((s) => $(s).addEventListener("change", cChange));
-document.querySelectorAll('input[name="c-label"]').forEach((el) => el.addEventListener("change", cChange));
+["#c-key", "#c-win", "#c-show", "#c-targets", "#c-line", "#c-next", "#c-metro", "#c-sound"].forEach((s) => $(s).addEventListener("change", cChange));
+document.querySelectorAll('input[name="c-label"], input[name="c-mode"]').forEach((el) => el.addEventListener("change", cChange));
 document.addEventListener("keydown", (e) => {
   if (e.code !== "Space" || $("#v-changes").hidden) return;
   const tag = (e.target.tagName || "").toLowerCase();
   if (["input", "select", "button", "textarea"].includes(tag)) return;
   e.preventDefault(); C.playing ? cStop() : cStart();
 });
+if (C.mode === "tap") newTask(C.ci, false);
 
 /* ================= routing ================= */
 const VIEWS = ["board", "caged", "quiz", "changes"];
@@ -1195,6 +1532,9 @@ function route() {
   for (const id of VIEWS) $("#v-" + id).hidden = id !== v;
   document.querySelectorAll("nav.tabs a").forEach((a) => (a.dataset.view === v ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
   if (v !== "changes" && C.playing) cStop();
+  // 保存されたポジションが画面外にあれば、そこまでスクロール
+  const w = v === "changes" ? winRange(C.win) : v === "board" ? winRange(B.win) : null;
+  if (w) scrollToFrets(v === "changes" ? cSvg : bSvg, w[0], w[1]);
   if (v === "quiz" && !Q.cur) nextQ();
   if (v !== "caged") kStopCycle();
   if (v === "caged") { if (KG.mode !== "view" && !KG.cur) kNextQ(); else renderCaged(true); }
