@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- /head-wrapper -->
+<title>ジャズ指板トレーナー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: one-column workbench — tabs, a control strip, then the fretboard as the object you practise on, feedback underneath */
+:root {
+  --bg: #e9edf2;
+  --surface: #ffffff;
+  --ink: #141a22;
+  --muted: #586373;
+  --line: #d3d9e1;
+  --accent: #1f58c9;
+  --accent-ink: #ffffff;
+  --ok: #1e9a55;
+  --bad: #d63f2b;
+
+  /* the instrument itself: same in both themes */
+  --wood: #3a2419;
+  --fret: #c9cdd3;
+  --str: #e6dece;
+  --inlay: #efe6d2;
+  --nut: #f3ecdc;
+  --c-root: #e2513b;
+  --c-third: #f2b632;
+  --c-fifth: #3b9fd6;
+  --c-seventh: #9b74e2;
+  --c-tension: #3fae73;
+  --on-mark: #ffffff;
+  --on-third: #2a1b03;
+
+  --f-display: "Bricolage Grotesque", "Zen Kaku Gothic New", system-ui, sans-serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10141a; --surface: #192029; --ink: #e6eaf0; --muted: #96a1ae; --line: #2b3440;
+    --accent: #6fa0ff; --accent-ink: #0b1220; --ok: #3cc27a; --bad: #ff6a52;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10141a; --surface: #192029; --ink: #e6eaf0; --muted: #96a1ae; --line: #2b3440;
+  --accent: #6fa0ff; --accent-ink: #0b1220; --ok: #3cc27a; --bad: #ff6a52;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; }
+.wrap {
+  max-width: 1180px; margin: 0 auto; display: grid; gap: 16px;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.brand { display: grid; gap: 2px; }
+.eyebrow { font: 500 .72rem/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font: 700 1.7rem/1.15 var(--f-display); text-wrap: balance; }
+nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; }
+nav.tabs a { padding: 6px 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-weight: 700; font-size: .9rem; }
+nav.tabs a[aria-current="page"] { background: var(--ink); color: var(--bg); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; }
+.field { display: grid; gap: 3px; font-size: .75rem; color: var(--muted); font-weight: 500; min-width: 0; }
+select, input[type="number"] {
+  font: inherit; font-size: .92rem; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; max-width: 100%;
+}
+input[type="range"] { accent-color: var(--accent); width: 120px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { padding: 6px 11px; font-size: .86rem; font-weight: 500; color: var(--ink); cursor: pointer; }
+.seg input:checked + label { background: var(--accent); color: var(--accent-ink); }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -2px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; padding-block: 6px; cursor: pointer; }
+.chk input { accent-color: var(--accent); width: 16px; height: 16px; }
+.btn {
+  font: inherit; font-size: .9rem; font-weight: 700; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.boardwrap { overflow-x: auto; border-radius: 10px; background: var(--bg); }
+svg.board { display: block; width: 100%; min-width: 760px; height: auto; -webkit-tap-highlight-color: transparent; user-select: none; }
+.wood { fill: var(--wood); }
+.fret { stroke: var(--fret); stroke-width: 2.5; }
+.nut { fill: var(--nut); }
+.str { stroke: var(--str); }
+.inlay { fill: var(--inlay); opacity: .5; }
+.fnum { fill: var(--muted); font: 500 12px var(--f-mono); text-anchor: middle; }
+.fnum.mk { fill: var(--ink); font-weight: 700; }
+.snum { fill: var(--muted); font: 500 11px var(--f-mono); text-anchor: middle; }
+.win { fill: var(--accent); fill-opacity: .14; stroke: var(--accent); stroke-width: 2; }
+.off { fill: var(--bg); fill-opacity: .55; }
+.hit { fill: transparent; cursor: pointer; }
+.hit:hover { fill: var(--nut); fill-opacity: .12; }
+.m { --mc: var(--c-tension); }
+.m.c-root { --mc: var(--c-root); }
+.m.c-third { --mc: var(--c-third); }
+.m.c-fifth { --mc: var(--c-fifth); }
+.m.c-seventh { --mc: var(--c-seventh); }
+.m.c-ok { --mc: var(--ok); }
+.m.c-bad { --mc: var(--bad); }
+.m.c-target { --mc: var(--nut); }
+.m circle { fill: var(--mc); stroke: var(--wood); stroke-width: 2; }
+.m text { font: 700 11px var(--f-mono); text-anchor: middle; fill: var(--on-mark); }
+.m.c-third text, .m.c-target text { fill: var(--on-third); }
+.m.dim { opacity: .2; }
+.m.ghost circle { fill: var(--wood); stroke: var(--mc); stroke-width: 2; stroke-dasharray: 4 3; }
+.m.ghost text { fill: var(--mc); }
+.m.common circle { stroke: var(--nut); stroke-width: 3.5; }
+.m.on circle { stroke: var(--nut); stroke-width: 5; }
+.m.c-target circle { stroke: var(--accent); stroke-width: 3; animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { stroke-width: 7; } }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.tip { margin: 0; font-size: .88rem; color: var(--muted); max-width: 72ch; }
+.tip b { color: var(--ink); }
+
+/* quiz */
+.prompt-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+.prompt { font: 700 1.5rem/1.3 var(--f-display); }
+.prompt .nn { font-family: var(--f-mono); color: var(--accent); }
+.feedback { font-weight: 700; min-height: 1.6em; }
+.feedback.ok { color: var(--ok); }
+.feedback.bad { color: var(--bad); }
+.answers { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
+.answers button {
+  font: 700 .9rem/1.15 var(--f-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 2px; cursor: pointer; min-height: 48px; white-space: pre-line;
+}
+.answers button.blk { background: var(--surface); }
+.answers button:hover { border-color: var(--accent); }
+.answers button.good { background: var(--ok); color: var(--surface); border-color: var(--ok); }
+.answers button.wrong { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: baseline; font-size: .85rem; color: var(--muted); }
+.stats b { font: 700 1.15rem var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.heat { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; }
+.heat div { border-radius: 6px; padding: 5px 2px; text-align: center; font: 500 .7rem/1.25 var(--f-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.heat div.has { color: var(--surface); border-color: transparent; }
+.heat small { display: block; opacity: .85; }
+.strings { display: inline-flex; gap: 4px; }
+.strings label { display: grid; place-items: center; width: 34px; height: 32px; border: 1px solid var(--line); border-radius: 8px; font: 700 .85rem var(--f-mono); cursor: pointer; background: var(--bg); color: var(--muted); }
+.strings input { position: absolute; opacity: 0; pointer-events: none; }
+.strings input:checked + span { color: var(--accent-ink); }
+.strings label:has(input:checked) { background: var(--accent); border-color: var(--accent); }
+.strings label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* changes */
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.transport .btns { display: flex; gap: 6px; }
+.now { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.now .sym { font: 700 2.2rem/1 var(--f-display); }
+.now .rn { font: 500 .95rem var(--f-mono); color: var(--muted); }
+.next { font-size: .9rem; color: var(--muted); }
+.next b { font-family: var(--f-mono); color: var(--ink); }
+.beats { display: flex; gap: 6px; align-items: center; }
+.beats i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); display: inline-block; }
+.beats i.on { background: var(--accent); }
+.beats span { font: 500 .8rem var(--f-mono); color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; display: grid; gap: 0; text-align: left; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.chip b { font: 700 .92rem var(--f-mono); }
+.chip small { font: 500 .7rem var(--f-mono); color: var(--muted); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip.on small { color: var(--accent-ink); }
+.bpmval { font: 700 .95rem var(--f-mono); color: var(--ink); min-width: 3ch; display: inline-block; font-variant-numeric: tabular-nums; }
+
+details.guide { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+details.guide summary { cursor: pointer; font-weight: 700; }
+details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 6px; max-width: 72ch; }
+
+@media (max-width: 720px) {
+  .answers, .heat { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  h1 { font-size: 1.4rem; }
+  .now .sym { font-size: 1.8rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+<!-- head-wrapper -->
+</head>
+<body>
+<!-- /body-wrapper -->
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="eyebrow">Standard tuning · E A D G B E · 15 frets</span>
+      <h1>ジャズ指板トレーナー</h1>
+    </div>
+    <nav class="tabs" aria-label="モード">
+      <a href="#board" data-view="board">指板ビューア</a>
+      <a href="#quiz" data-view="quiz">音名クイズ</a>
+      <a href="#changes" data-view="changes">コード進行</a>
+    </nav>
+  </header>
+
+  <!-- ============ 指板ビューア ============ -->
+  <section id="v-board" class="panel view">
+    <div class="controls">
+      <label class="field">ルート<select id="b-root"></select></label>
+      <label class="field">スケール / アルペジオ<select id="b-shape"></select></label>
+      <label class="field">ポジション<select id="b-win"></select></label>
+      <div class="field">表示
+        <div class="seg">
+          <input type="radio" name="b-label" id="b-label-deg" value="deg" checked><label for="b-label-deg">度数</label>
+          <input type="radio" name="b-label" id="b-label-note" value="note"><label for="b-label-note">音名</label>
+        </div>
+      </div>
+      <label class="chk"><input type="checkbox" id="b-guide">3度・7度を強調</label>
+      <button class="btn primary" id="b-play" type="button">▶ ポジション内を上行</button>
+    </div>
+    <div class="boardwrap"><svg class="board" id="b-svg" role="img" aria-label="ギター指板"></svg></div>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:var(--c-root)"></i>ルート</span>
+      <span><i style="background:var(--c-third)"></i>3度</span>
+      <span><i style="background:var(--c-fifth)"></i>5度</span>
+      <span><i style="background:var(--c-seventh)"></i>7度</span>
+      <span><i style="background:var(--c-tension)"></i>テンション・その他</span>
+    </div>
+    <p class="tip">まずは <b>5フレット幅の1ポジション</b> に絞り、ルート・3度・5度・7度の場所を度数で言えるようにします。次に「音名」に切り替え、同じ形を別のキーへ動かすと、形と音名が結びつきます。押さえた場所をタップすると音が鳴ります。</p>
+  </section>
+
+  <!-- ============ 音名クイズ ============ -->
+  <section id="v-quiz" class="panel view" hidden>
+    <div class="controls">
+      <div class="field">モード
+        <div class="seg">
+          <input type="radio" name="q-mode" id="q-mode-name" value="name" checked><label for="q-mode-name">この音は？</label>
+          <input type="radio" name="q-mode" id="q-mode-find" value="find"><label for="q-mode-find">弦で探す</label>
+          <input type="radio" name="q-mode" id="q-mode-all" value="all"><label for="q-mode-all">全部探す</label>
+        </div>
+      </div>
+      <div class="field">出題する弦
+        <div class="strings" id="q-strings"></div>
+      </div>
+      <label class="field">フレット範囲
+        <select id="q-max">
+          <option value="5">開放〜5フレット</option>
+          <option value="12" selected>開放〜12フレット</option>
+          <option value="15">開放〜15フレット</option>
+        </select>
+      </label>
+      <button class="btn" id="q-skip" type="button">スキップ</button>
+      <button class="btn" id="q-reset" type="button">このモードの記録をリセット</button>
+    </div>
+    <div class="prompt-row">
+      <div class="prompt" id="q-prompt" aria-live="polite">　</div>
+      <div class="feedback" id="q-feedback" aria-live="polite"></div>
+    </div>
+    <div class="answers" id="q-answers"></div>
+    <div class="boardwrap"><svg class="board" id="q-svg" role="img" aria-label="ギター指板"></svg></div>
+    <div class="stats" id="q-stats"></div>
+    <div class="heat" id="q-heat" aria-label="音名ごとの正解率"></div>
+    <p class="tip">1日5分、最初は弦を1〜2本に絞り、正解率が90%を超えたら弦を増やします。<b>全部探す</b> は1つの音を全弦で見つける練習で、指板全体の地図づくりに効きます。答える前に音名を声に出すと定着が速くなります。</p>
+  </section>
+
+  <!-- ============ コード進行 ============ -->
+  <section id="v-changes" class="panel view" hidden>
+    <div class="controls">
+      <label class="field">進行<select id="c-prog"></select></label>
+      <label class="field">キー<select id="c-key"></select></label>
+      <label class="field">テンポ <span><span class="bpmval" id="c-bpmval">100</span> BPM</span><input type="range" id="c-bpm" min="40" max="240" step="2" value="100"></label>
+      <label class="field">ポジション<select id="c-win"></select></label>
+      <div class="field">表示
+        <div class="seg">
+          <input type="radio" name="c-label" id="c-label-deg" value="deg" checked><label for="c-label-deg">度数</label>
+          <input type="radio" name="c-label" id="c-label-note" value="note"><label for="c-label-note">音名</label>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="chk"><input type="checkbox" id="c-guide">3度・7度だけ表示</label>
+      <label class="chk"><input type="checkbox" id="c-next" checked>次のコードを予告</label>
+      <label class="chk"><input type="checkbox" id="c-metro" checked>メトロノーム</label>
+      <label class="chk"><input type="checkbox" id="c-sound" checked>コードを鳴らす</label>
+    </div>
+    <div class="transport">
+      <div class="btns">
+        <button class="btn" id="c-prev" type="button" aria-label="前のコード">◀</button>
+        <button class="btn primary" id="c-play" type="button">▶ スタート</button>
+        <button class="btn" id="c-fwd" type="button" aria-label="次のコード">▶▶</button>
+      </div>
+      <div class="now"><span class="sym" id="c-sym">Dm7</span><span class="rn" id="c-rn">ii7</span></div>
+      <div class="next" id="c-nextlbl"></div>
+      <div class="beats" id="c-beats"></div>
+    </div>
+    <div class="chips" id="c-chips"></div>
+    <div class="boardwrap"><svg class="board" id="c-svg" role="img" aria-label="ギター指板"></svg></div>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:var(--c-root)"></i>ルート</span>
+      <span><i style="background:var(--c-third)"></i>3度</span>
+      <span><i style="background:var(--c-fifth)"></i>5度</span>
+      <span><i style="background:var(--c-seventh)"></i>7度 / 6度</span>
+      <span><i style="border:2px dashed var(--muted)"></i>次のコードの音</span>
+      <span><i style="background:var(--muted);box-shadow:0 0 0 2px var(--nut) inset"></i>共通音</span>
+    </div>
+    <p class="tip">各コードの <b>3度と7度(ガイドトーン)</b> は、次のコードへ共通音か半音でつながります。ポジションを1つに固定し、①ガイドトーンだけ → ②アルペジオ全部 → ③アルペジオからスケールへ、の順で進めます。スペースキーでスタート/ストップ。</p>
+  </section>
+
+  <details class="guide">
+    <summary>1日20分の練習メニュー例</summary>
+    <ol>
+      <li><b>音名クイズ 5分</b>：今週は5弦と6弦だけ、など範囲を絞って反射で答えられるまで。</li>
+      <li><b>指板ビューア 5分</b>：1ポジションで maj7 / m7 / 7 / m7♭5 のアルペジオを度数を言いながら弾く。</li>
+      <li><b>コード進行 10分</b>：ii–V–I をゆっくりのテンポで。ガイドトーンだけ → アルペジオ → スケールの順。慣れたらキーを4度ずつ(C→F→B♭…)動かす。</li>
+    </ol>
+  </details>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = (s) => document.querySelector(s);
+
+/* ---------------- theory ---------------- */
+const TUNING = [64, 59, 55, 50, 45, 40]; // string 1 (high E) .. string 6 (low E)
+const FRETS = 15;
+const LETTERS = "CDEFGAB";
+const LETTER_PC = [0, 2, 4, 5, 7, 9, 11];
+const SHARP = ["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"];
+const FLAT  = ["C","D♭","D","E♭","E","F","G♭","G","A♭","A","B♭","B"];
+const ENH   = ["C","C♯\nD♭","D","D♯\nE♭","E","F","F♯\nG♭","G","G♯\nA♭","A","A♯\nB♭","B"];
+const ROOT_NAMES = ["C","D♭","D","E♭","E","F","F♯","G","A♭","A","B♭","B"];
+const DEG_SEMI = { "1":0, "b2":1, "b9":1, "2":2, "9":2, "#9":3, "b3":3, "3":4, "4":5, "11":5,
+  "#4":6, "#11":6, "b5":6, "5":7, "#5":8, "b6":8, "b13":8, "6":9, "13":9, "bb7":9, "b7":10, "7":11 };
+
+const namePc = (n) => {
+  let pc = LETTER_PC[LETTERS.indexOf(n[0])];
+  for (const ch of n.slice(1)) {
+    if (ch === "♯") pc += 1; else if (ch === "♭") pc -= 1;
+    else if (ch === "𝄪") pc += 2; else if (ch === "𝄫") pc -= 2;
+  }
+  return ((pc % 12) + 12) % 12;
+};
+const degNum = (d) => +d.replace(/[^0-9]/g, "");
+const prettyDeg = (d) => d.replace(/b/g, "♭").replace(/#/g, "♯");
+function spell(rootName, semis, deg) {
+  const li = (LETTERS.indexOf(rootName[0]) + degNum(deg) - 1) % 7;
+  const pc = (namePc(rootName) + semis) % 12;
+  let diff = (((pc - LETTER_PC[li]) % 12) + 12) % 12;
+  if (diff > 6) diff -= 12;
+  const acc = { "0": "", "1": "♯", "-1": "♭", "2": "𝄪", "-2": "𝄫" }[diff];
+  return acc === undefined ? FLAT[pc] : LETTERS[li] + acc;
+}
+function category(d) {
+  if (d === "1") return "root";
+  const n = degNum(d);
+  return n === 3 ? "third" : n === 5 ? "fifth" : n === 7 ? "seventh" : "tension";
+}
+const mk = (name, degs, extra = {}) => {
+  const d = degs.split(" ");
+  return Object.assign({ name, degs: d, semis: d.map((x) => DEG_SEMI[x]) }, extra);
+};
+
+const ARPS = {
+  maj7:  mk("maj7", "1 3 5 7", { suffix: "maj7", rn: "Δ7", minor: false }),
+  "7":   mk("7", "1 3 5 b7", { suffix: "7", rn: "7", minor: false }),
+  m7:    mk("m7", "1 b3 5 b7", { suffix: "m7", rn: "7", minor: true }),
+  m7b5:  mk("m7♭5", "1 b3 b5 b7", { suffix: "m7♭5", rn: "ø7", minor: true }),
+  dim7:  mk("dim7", "1 b3 b5 bb7", { suffix: "dim7", rn: "°7", minor: true }),
+  mMaj7: mk("m(maj7)", "1 b3 5 7", { suffix: "m(maj7)", rn: "Δ7", minor: true }),
+  "6":   mk("6", "1 3 5 6", { suffix: "6", rn: "6", minor: false }),
+  m6:    mk("m6", "1 b3 5 6", { suffix: "m6", rn: "6", minor: true }),
+  "7#5": mk("7♯5", "1 3 #5 b7", { suffix: "7♯5", rn: "7♯5", minor: false }),
+};
+
+const GROUPS = [
+  { label: "アルペジオ", items: Object.keys(ARPS).map((k) => Object.assign({}, ARPS[k], { name: ARPS[k].name + " アルペジオ" })) },
+  { label: "メジャー・スケールのモード", items: [
+    mk("メジャー (アイオニアン)", "1 2 3 4 5 6 7"),
+    mk("ドリアン", "1 2 b3 4 5 6 b7"),
+    mk("フリジアン", "1 b2 b3 4 5 b6 b7"),
+    mk("リディアン", "1 2 3 #4 5 6 7"),
+    mk("ミクソリディアン", "1 2 3 4 5 6 b7"),
+    mk("エオリアン (ナチュラル・マイナー)", "1 2 b3 4 5 b6 b7"),
+    mk("ロクリアン", "1 b2 b3 4 b5 b6 b7"),
+  ]},
+  { label: "ジャズでよく使う", items: [
+    mk("メロディック・マイナー", "1 2 b3 4 5 6 7"),
+    mk("ハーモニック・マイナー", "1 2 b3 4 5 b6 7"),
+    mk("リディアン♭7", "1 2 3 #4 5 6 b7"),
+    mk("オルタード", "1 b9 #9 3 #11 b13 b7"),
+    mk("フリジアン・ドミナント (HMP5↓)", "1 b9 3 4 5 b13 b7"),
+    mk("ディミニッシュ (H-W)", "1 b9 #9 3 #11 5 13 b7"),
+    mk("ホールトーン", "1 9 3 #11 #5 b7"),
+    mk("ビバップ・ドミナント", "1 2 3 4 5 6 b7 7"),
+  ]},
+  { label: "ペンタトニック / ブルース", items: [
+    mk("メジャー・ペンタトニック", "1 2 3 5 6"),
+    mk("マイナー・ペンタトニック", "1 b3 4 5 b7"),
+    mk("ブルース", "1 b3 4 b5 5 b7"),
+  ]},
+];
+const ITEMS = GROUPS.flatMap((g) => g.items);
+
+const PROGS = [
+  { name: "ii–V–I (メジャー)", chords: [["2","m7",4],["5","7",4],["1","maj7",8]] },
+  { name: "ii–V–i (マイナー)", chords: [["2","m7b5",4],["5","7",4],["1","m6",8]] },
+  { name: "I–vi–ii–V (循環)", chords: [["1","maj7",4],["6","m7",4],["2","m7",4],["5","7",4]] },
+  { name: "iii–VI–ii–V–I", chords: [["3","m7",4],["6","7",4],["2","m7",4],["5","7",4],["1","maj7",8]] },
+  { name: "ジャズ・ブルース (12小節)", chords: [["1","7",4],["4","7",4],["1","7",4],["5","m7",2],["1","7",2],
+      ["4","7",4],["#4","dim7",4],["1","7",4],["6","7",4],["2","m7",4],["5","7",4],["1","7",2],["6","7",2],["2","m7",2],["5","7",2]] },
+  { name: "マイナー・ブルース (12小節)", chords: [["1","m7",16],["4","m7",8],["1","m7",8],["b6","7",4],["5","7",4],["1","m7",4],["5","7",4]] },
+  { name: "4度進行 (マイナー・キー)", chords: [["4","m7",4],["b7","7",4],["b3","maj7",4],["b6","maj7",4],["2","m7b5",4],["5","7",4],["1","m6",8]] },
+];
+const ROMAN = ["I","II","III","IV","V","VI","VII"];
+
+/* ---------------- storage ---------------- */
+const STORE_KEY = "jazz-fretboard-v1";
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch (e) { saved = {}; }
+function persist() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ b: B, q: { mode: Q.mode, strings: Q.strings, max: Q.max, stats: Q.stats },
+      c: { prog: C.prog, key: C.key, bpm: C.bpm, win: C.win, label: C.label, guide: C.guide, next: C.next, metro: C.metro, sound: C.sound } }));
+  } catch (e) { /* storage unavailable */ }
+}
+
+/* ---------------- audio ---------------- */
+let ctx = null, master = null;
+const bufCache = new Map();
+function audio() {
+  if (!ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = 0.7;
+    const comp = ctx.createDynamicsCompressor();
+    master.connect(comp); comp.connect(ctx.destination);
+  }
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function ksBuffer(midi) { // Karplus–Strong plucked string
+  if (bufCache.has(midi)) return bufCache.get(midi);
+  const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12);
+  const N = Math.max(2, Math.floor(sr / f));
+  const len = Math.floor(sr * 1.8);
+  const buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+  const ring = new Float32Array(N);
+  let prev = 0;
+  for (let i = 0; i < N; i++) { prev = prev * 0.45 + (Math.random() * 2 - 1) * 0.55; ring[i] = prev; }
+  let idx = 0;
+  for (let i = 0; i < len; i++) {
+    const nx = idx + 1 === N ? 0 : idx + 1, v = ring[idx];
+    d[i] = v; ring[idx] = (v + ring[nx]) * 0.4985; idx = nx;
+  }
+  const out = { buf, rate: f / (sr / (N + 0.5)) };
+  bufCache.set(midi, out);
+  return out;
+}
+function pluck(midi, when, gain = 0.55) {
+  const c = audio(); if (!c) return;
+  const { buf, rate } = ksBuffer(midi);
+  const t = when || c.currentTime;
+  const src = c.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate;
+  const g = c.createGain();
+  g.gain.setValueAtTime(gain, t); g.gain.setTargetAtTime(0, t + 1.3, 0.15);
+  src.connect(g); g.connect(master); src.start(t); src.stop(t + 1.9);
+}
+function click(when, accent) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.value = accent ? 1700 : 1100;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(accent ? 0.45 : 0.25, when + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
+  o.connect(g); g.connect(master); o.start(when); o.stop(when + 0.06);
+}
+
+/* ---------------- fretboard SVG ---------------- */
+const NUT = 60, END = 986;
+const K = (END - NUT) / (1 - Math.pow(2, -FRETS / 12));
+const fx = (n) => NUT + K * (1 - Math.pow(2, -n / 12));
+const TOP = 26, GAP = 32, BOT = TOP + 5 * GAP, H = BOT + 50;
+const cx = (f) => (f === 0 ? NUT - 26 : (fx(f - 1) + fx(f)) / 2);
+const sy = (s) => TOP + s * GAP;
+const midiAt = (s, f) => TUNING[s] + f;
+const pcAt = (s, f) => (TUNING[s] + f) % 12;
+const key = (s, f) => s + ":" + f;
+
+function boardSVG(o) {
+  let h = `<rect class="wood" x="${NUT}" y="${TOP - 14}" width="${END - NUT}" height="${BOT - TOP + 28}" rx="3"/>`;
+  const midY = (TOP + BOT) / 2;
+  for (const f of [3, 5, 7, 9, 15]) h += `<circle class="inlay" cx="${cx(f)}" cy="${midY}" r="7"/>`;
+  h += `<circle class="inlay" cx="${cx(12)}" cy="${sy(1) + GAP / 2}" r="7"/><circle class="inlay" cx="${cx(12)}" cy="${sy(3) + GAP / 2}" r="7"/>`;
+  if (o.win) {
+    const [a, b] = o.win;
+    const x1 = a === 0 ? NUT - 50 : fx(a - 1) + 1, x2 = fx(b) - 1;
+    h += `<rect class="win" x="${x1}" y="${TOP - 19}" width="${x2 - x1}" height="${BOT - TOP + 38}" rx="7"/>`;
+  }
+  h += `<rect class="nut" x="${NUT - 5}" y="${TOP - 14}" width="7" height="${BOT - TOP + 28}"/>`;
+  for (let n = 1; n <= FRETS; n++) h += `<line class="fret" x1="${fx(n)}" x2="${fx(n)}" y1="${TOP - 14}" y2="${BOT + 14}"/>`;
+  for (let s = 0; s < 6; s++) {
+    h += `<line class="str" x1="${NUT - 46}" x2="${END}" y1="${sy(s)}" y2="${sy(s)}" stroke-width="${(0.9 + s * 0.38).toFixed(2)}"${o.offStrings && o.offStrings[s] ? ' opacity="0.3"' : ""}/>`;
+    h += `<text class="snum" x="${NUT - 54}" y="${sy(s) + 4}">${s + 1}</text>`;
+  }
+  for (let f = 0; f <= FRETS; f++) {
+    const marked = [3, 5, 7, 9, 12, 15].includes(f);
+    h += `<text class="fnum${marked ? " mk" : ""}" x="${cx(f)}" y="${BOT + 38}">${f}</text>`;
+  }
+  for (const m of o.markers || []) {
+    const cls = ["m", "c-" + m.cat, m.dim ? "dim" : "", m.ghost ? "ghost" : "", m.common ? "common" : "", m.on ? "on" : ""].join(" ");
+    const r = m.ghost ? 11 : 13.5;
+    const fs = m.label.length > 2 ? ' style="font-size:9.5px"' : "";
+    h += `<g class="${cls}" transform="translate(${cx(m.f).toFixed(1)} ${sy(m.s)})" pointer-events="none"><circle r="${r}"/><text dy="0.36em"${fs}>${m.label}</text></g>`;
+  }
+  for (let s = 0; s < 6; s++) for (let f = 0; f <= FRETS; f++) {
+    const x1 = f === 0 ? NUT - 46 : fx(f - 1), x2 = f === 0 ? NUT - 4 : fx(f);
+    h += `<rect class="hit" data-s="${s}" data-f="${f}" x="${x1.toFixed(1)}" y="${sy(s) - GAP / 2}" width="${(x2 - x1).toFixed(1)}" height="${GAP}"><title>${s + 1}弦 ${f}フレット</title></rect>`;
+  }
+  return h;
+}
+function setupBoard(svg, onTap) {
+  svg.setAttribute("viewBox", `${NUT - 64} 0 ${END - NUT + 72} ${H}`);
+  svg.addEventListener("click", (e) => {
+    const t = e.target.closest(".hit");
+    if (t) onTap(+t.dataset.s, +t.dataset.f);
+  });
+}
+function winOptions(sel) {
+  sel.innerHTML = `<option value="all">指板全体</option>` +
+    Array.from({ length: 12 }, (_, a) => `<option value="${a}">${a === 0 ? "開放" : a}〜${a + 4}フレット</option>`).join("");
+}
+const winRange = (v) => (v === "all" ? null : [+v, +v + 4]);
+const fillRoots = (sel) => { sel.innerHTML = ROOT_NAMES.map((n, i) => `<option value="${i}">${n}</option>`).join(""); };
+const radioVal = (name) => document.querySelector(`input[name="${name}"]:checked`).value;
+const setRadio = (name, v) => { const el = document.querySelector(`input[name="${name}"][value="${v}"]`); if (el) el.checked = true; };
+
+/* ================= 指板ビューア ================= */
+const B = Object.assign({ root: 0, shape: 0, win: "7", label: "deg", guide: false }, saved.b || {});
+B.active = null;
+if (B.shape >= ITEMS.length) B.shape = 0;
+const bSvg = $("#b-svg");
+fillRoots($("#b-root"));
+$("#b-shape").innerHTML = GROUPS.map((g) => `<optgroup label="${g.label}">` +
+  g.items.map((it) => `<option value="${ITEMS.indexOf(it)}">${it.name}</option>`).join("") + `</optgroup>`).join("");
+winOptions($("#b-win"));
+$("#b-root").value = B.root; $("#b-shape").value = B.shape; $("#b-win").value = B.win;
+setRadio("b-label", B.label); $("#b-guide").checked = B.guide;
+
+function boardMarkers() {
+  const rootName = ROOT_NAMES[B.root], it = ITEMS[B.shape], win = winRange(B.win), rpc = namePc(rootName);
+  const ms = [];
+  for (let s = 0; s < 6; s++) for (let f = 0; f <= FRETS; f++) {
+    const i = it.semis.indexOf((pcAt(s, f) - rpc + 12) % 12);
+    if (i < 0) continue;
+    const d = it.degs[i], cat = category(d);
+    const out = win && (f < win[0] || f > win[1]);
+    const faded = B.guide && (cat === "fifth" || cat === "tension");
+    ms.push({ s, f, cat, dim: out || faded, out, on: B.active === key(s, f),
+      label: B.label === "deg" ? prettyDeg(d) : spell(rootName, it.semis[i], d) });
+  }
+  return ms;
+}
+function renderBoard() {
+  bSvg.innerHTML = boardSVG({ markers: boardMarkers(), win: winRange(B.win) });
+}
+setupBoard(bSvg, (s, f) => { pluck(midiAt(s, f)); B.active = key(s, f); renderBoard(); setTimeout(() => { if (B.active === key(s, f)) { B.active = null; renderBoard(); } }, 450); });
+const bChange = () => {
+  B.root = +$("#b-root").value; B.shape = +$("#b-shape").value; B.win = $("#b-win").value;
+  B.label = radioVal("b-label"); B.guide = $("#b-guide").checked; renderBoard(); persist();
+};
+["#b-root", "#b-shape", "#b-win", "#b-guide"].forEach((s) => $(s).addEventListener("change", bChange));
+document.querySelectorAll('input[name="b-label"]').forEach((el) => el.addEventListener("change", bChange));
+
+let bPlayTimers = [];
+$("#b-play").addEventListener("click", () => {
+  const c = audio(); if (!c) return;
+  bPlayTimers.forEach(clearTimeout); bPlayTimers = [];
+  let ms = boardMarkers().filter((m) => !m.out);
+  const seen = new Map();
+  // one position per pitch; prefer the lower (thicker) string, as in position playing
+  ms.sort((a, b) => midiAt(a.s, a.f) - midiAt(b.s, b.f) || b.s - a.s);
+  for (const m of ms) if (!seen.has(midiAt(m.s, m.f))) seen.set(midiAt(m.s, m.f), m);
+  let seq = [...seen.values()];
+  if (!winRange(B.win)) { // whole neck: two octaves from the lowest root
+    const r = seq.find((m) => m.cat === "root");
+    const lo = r ? midiAt(r.s, r.f) : midiAt(seq[0].s, seq[0].f);
+    seq = seq.filter((m) => { const x = midiAt(m.s, m.f); return x >= lo && x <= lo + 24; });
+  }
+  const step = 0.2, t0 = c.currentTime + 0.05;
+  seq.forEach((m, i) => {
+    pluck(midiAt(m.s, m.f), t0 + i * step);
+    bPlayTimers.push(setTimeout(() => { B.active = key(m.s, m.f); renderBoard(); }, i * step * 1000 + 50));
+  });
+  bPlayTimers.push(setTimeout(() => { B.active = null; renderBoard(); }, seq.length * step * 1000 + 300));
+});
+
+/* ================= 音名クイズ ================= */
+const emptyStats = () => ({ ok: 0, n: 0, time: 0, streak: 0, best: 0, pc: Array.from({ length: 12 }, () => [0, 0]) });
+const sq = saved.q || {};
+const Q = {
+  mode: sq.mode || "name",
+  strings: Array.isArray(sq.strings) && sq.strings.length === 6 ? sq.strings : [true, true, true, true, true, true],
+  max: sq.max || 12,
+  stats: Object.assign({ name: emptyStats(), find: emptyStats(), all: emptyStats() }, sq.stats || {}),
+  cur: null, lock: false, result: null, wrong: null, found: new Set(), miss: 0, t0: 0, prevKey: null, timer: null,
+};
+const qSvg = $("#q-svg");
+$("#q-strings").innerHTML = Q.strings.map((on, s) =>
+  `<label title="${s + 1}弦 (${SHARP[TUNING[s] % 12]})"><input type="checkbox" data-s="${s}"${on ? " checked" : ""}><span>${s + 1}</span></label>`).join("");
+$("#q-max").value = String(Q.max);
+setRadio("q-mode", Q.mode);
+$("#q-answers").innerHTML = ENH.map((n, pc) =>
+  `<button type="button" data-pc="${pc}" class="${n.includes("\n") ? "blk" : ""}" aria-label="${n.replace("\n", " / ")}">${n}</button>`).join("");
+
+const randName = (pc) => (SHARP[pc] === FLAT[pc] ? SHARP[pc] : Math.random() < 0.5 ? SHARP[pc] : FLAT[pc]);
+const allowed = () => {
+  const out = [];
+  for (let s = 0; s < 6; s++) if (Q.strings[s]) for (let f = 0; f <= Q.max; f++) out.push({ s, f });
+  return out;
+};
+const isAllowed = (s, f) => Q.strings[s] && f <= Q.max;
+
+function nextQ() {
+  clearTimeout(Q.timer);
+  Q.lock = false; Q.result = null; Q.wrong = null; Q.found = new Set(); Q.miss = 0;
+  const pos = allowed();
+  if (!pos.length) { Q.cur = null; renderQuiz(); return; }
+  let p;
+  for (let tries = 0; tries < 20; tries++) {
+    p = pos[Math.floor(Math.random() * pos.length)];
+    if (key(p.s, p.f) !== Q.prevKey) break;
+  }
+  Q.prevKey = key(p.s, p.f);
+  const pc = pcAt(p.s, p.f);
+  if (Q.mode === "name") Q.cur = { s: p.s, f: p.f, pc };
+  else if (Q.mode === "find") Q.cur = { s: p.s, pc, name: randName(pc) };
+  else Q.cur = { pc, name: randName(pc), targets: pos.filter((q) => pcAt(q.s, q.f) === pc).map((q) => key(q.s, q.f)) };
+  Q.t0 = performance.now();
+  renderQuiz();
+}
+function record(pc, ok) {
+  const st = Q.stats[Q.mode];
+  st.n++; st.pc[pc][1]++;
+  if (ok) { st.ok++; st.pc[pc][0]++; st.streak++; st.best = Math.max(st.best, st.streak); }
+  else st.streak = 0;
+  st.time += performance.now() - Q.t0;
+  persist();
+}
+function answerName(pc) {
+  if (Q.lock || !Q.cur || Q.mode !== "name") return;
+  Q.lock = true;
+  const ok = pc === Q.cur.pc;
+  record(Q.cur.pc, ok);
+  Q.result = { ok, chosen: pc };
+  pluck(midiAt(Q.cur.s, Q.cur.f));
+  renderQuiz();
+  Q.timer = setTimeout(nextQ, ok ? 700 : 1600);
+}
+function tapQuiz(s, f) {
+  pluck(midiAt(s, f));
+  if (!Q.cur || Q.lock) return;
+  const pc = pcAt(s, f);
+  if (Q.mode === "find") {
+    if (s !== Q.cur.s) { $("#q-feedback").className = "feedback"; $("#q-feedback").textContent = `${Q.cur.s + 1}弦の上で探してください`; return; }
+    Q.lock = true;
+    const ok = pc === Q.cur.pc;
+    record(Q.cur.pc, ok);
+    Q.result = { ok };
+    Q.wrong = ok ? null : { s, f };
+    Q.tapped = { s, f };
+    renderQuiz();
+    Q.timer = setTimeout(nextQ, ok ? 700 : 1800);
+  } else if (Q.mode === "all") {
+    const k = key(s, f);
+    if (pc === Q.cur.pc) {
+      if (!isAllowed(s, f)) return;
+      Q.found.add(k);
+      if (Q.found.size === Q.cur.targets.length) {
+        Q.lock = true;
+        const ok = Q.miss === 0;
+        record(Q.cur.pc, ok);
+        Q.result = { ok };
+        Q.timer = setTimeout(nextQ, 1100);
+      }
+    } else {
+      Q.miss++;
+      Q.wrong = { s, f };
+      setTimeout(() => { if (Q.wrong && key(Q.wrong.s, Q.wrong.f) === k) { Q.wrong = null; renderQuiz(); } }, 500);
+    }
+    renderQuiz();
+  }
+}
+function renderQuiz() {
+  const pr = $("#q-prompt"), fb = $("#q-feedback");
+  const ms = [];
+  const offStrings = Q.strings.map((x) => !x);
+  $("#q-answers").hidden = Q.mode !== "name";
+  fb.className = "feedback"; fb.textContent = "";
+  if (!Q.cur) {
+    pr.textContent = "出題する弦を1本以上選んでください";
+  } else if (Q.mode === "name") {
+    pr.innerHTML = `<span class="nn">${Q.cur.s + 1}弦 ${Q.cur.f}フレット</span> の音は？`;
+    if (Q.result) {
+      ms.push({ s: Q.cur.s, f: Q.cur.f, cat: Q.result.ok ? "ok" : "bad", label: SHARP[Q.cur.pc] });
+      fb.className = "feedback " + (Q.result.ok ? "ok" : "bad");
+      fb.textContent = Q.result.ok ? "正解！" : `正解は ${ENH[Q.cur.pc].replace("\n", " / ")}`;
+    } else ms.push({ s: Q.cur.s, f: Q.cur.f, cat: "target", label: "?" });
+  } else if (Q.mode === "find") {
+    pr.innerHTML = `<span class="nn">${Q.cur.s + 1}弦</span> で <span class="nn">${Q.cur.name}</span> を探そう`;
+    if (Q.result) {
+      for (let f = 0; f <= Q.max; f++) if (pcAt(Q.cur.s, f) === Q.cur.pc) ms.push({ s: Q.cur.s, f, cat: "ok", label: Q.cur.name });
+      if (Q.wrong) ms.push({ s: Q.wrong.s, f: Q.wrong.f, cat: "bad", label: SHARP[pcAt(Q.wrong.s, Q.wrong.f)] });
+      fb.className = "feedback " + (Q.result.ok ? "ok" : "bad");
+      fb.textContent = Q.result.ok ? "正解！" : `そこは ${ENH[pcAt(Q.wrong.s, Q.wrong.f)].replace("\n", " / ")}`;
+    }
+  } else {
+    const left = Q.cur.targets.length - Q.found.size;
+    pr.innerHTML = `<span class="nn">${Q.cur.name}</span> を全部見つけよう <span class="nn">残り ${left}</span>`;
+    for (const k of Q.found) { const [s, f] = k.split(":").map(Number); ms.push({ s, f, cat: "ok", label: Q.cur.name }); }
+    if (Q.wrong) ms.push({ s: Q.wrong.s, f: Q.wrong.f, cat: "bad", label: SHARP[pcAt(Q.wrong.s, Q.wrong.f)] });
+    if (Q.result) { fb.className = "feedback " + (Q.result.ok ? "ok" : "bad"); fb.textContent = Q.result.ok ? "ノーミス！" : `完了 (ミス ${Q.miss})`; }
+  }
+  document.querySelectorAll("#q-answers button").forEach((b) => {
+    const pc = +b.dataset.pc;
+    b.classList.toggle("good", !!(Q.result && Q.mode === "name" && pc === Q.cur.pc));
+    b.classList.toggle("wrong", !!(Q.result && Q.mode === "name" && !Q.result.ok && pc === Q.result.chosen));
+  });
+  qSvg.innerHTML = boardSVG({ markers: ms, win: Q.max < FRETS ? [0, Q.max] : null, offStrings });
+  renderStats();
+}
+function renderStats() {
+  const st = Q.stats[Q.mode];
+  const pct = st.n ? Math.round((st.ok / st.n) * 100) + "%" : "—";
+  const avg = st.n ? (st.time / st.n / 1000).toFixed(1) + "秒" : "—";
+  $("#q-stats").innerHTML = `<span>正解率<b>${pct}</b></span><span>回答数<b>${st.n}</b></span><span>平均時間<b>${avg}</b></span><span>連続正解<b>${st.streak}</b></span><span>ベスト<b>${st.best}</b></span>`;
+  $("#q-heat").innerHTML = st.pc.map(([ok, n], pc) => {
+    if (!n) return `<div title="まだ出題なし">${ENH[pc].replace("\n", "/")}<small>—</small></div>`;
+    const p = Math.round((ok / n) * 100);
+    return `<div class="has" style="background:color-mix(in oklab, var(--ok) ${p}%, var(--bad))" title="${ok}/${n}">${ENH[pc].replace("\n", "/")}<small>${p}%</small></div>`;
+  }).join("");
+}
+setupBoard(qSvg, tapQuiz);
+$("#q-answers").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) answerName(+b.dataset.pc); });
+document.querySelectorAll('input[name="q-mode"]').forEach((el) => el.addEventListener("change", () => { Q.mode = radioVal("q-mode"); persist(); nextQ(); }));
+$("#q-strings").addEventListener("change", (e) => { Q.strings[+e.target.dataset.s] = e.target.checked; persist(); nextQ(); });
+$("#q-max").addEventListener("change", () => { Q.max = +$("#q-max").value; persist(); nextQ(); });
+$("#q-skip").addEventListener("click", nextQ);
+$("#q-reset").addEventListener("click", () => { Q.stats[Q.mode] = emptyStats(); persist(); renderStats(); });
+
+/* ================= コード進行 ================= */
+const sc = saved.c || {};
+const C = Object.assign({ prog: 0, key: 0, bpm: 100, win: "all", label: "deg", guide: false, next: true, metro: true, sound: true }, sc,
+  { ci: 0, beat: 0, playing: false });
+if (C.prog >= PROGS.length) C.prog = 0;
+const cSvg = $("#c-svg");
+$("#c-prog").innerHTML = PROGS.map((p, i) => `<option value="${i}">${p.name}</option>`).join("");
+fillRoots($("#c-key")); winOptions($("#c-win"));
+$("#c-prog").value = C.prog; $("#c-key").value = C.key; $("#c-win").value = C.win;
+$("#c-bpm").value = C.bpm; $("#c-bpmval").textContent = C.bpm;
+setRadio("c-label", C.label);
+$("#c-guide").checked = C.guide; $("#c-next").checked = C.next; $("#c-metro").checked = C.metro; $("#c-sound").checked = C.sound;
+
+function chordList() {
+  const keyName = ROOT_NAMES[C.key];
+  return PROGS[C.prog].chords.map(([deg, q, beats]) => {
+    const arp = ARPS[q], rootName = spell(keyName, DEG_SEMI[deg], deg);
+    const acc = prettyDeg(deg.replace(/\d+/, "")), r = ROMAN[degNum(deg) - 1];
+    return { rootName, rpc: namePc(rootName), arp, beats, sym: rootName + arp.suffix, rn: acc + (arp.minor ? r.toLowerCase() : r) + arp.rn };
+  });
+}
+function toneAt(ch, s, f) {
+  const i = ch.arp.semis.indexOf((pcAt(s, f) - ch.rpc + 12) % 12);
+  if (i < 0) return null;
+  const d = ch.arp.degs[i], cat = category(d === "6" ? "7" : d);
+  if (C.guide && cat !== "third" && cat !== "seventh") return null;
+  return { d, cat, label: C.label === "deg" ? prettyDeg(d) : spell(ch.rootName, ch.arp.semis[i], d) };
+}
+function renderChanges() {
+  const list = chordList(), ch = list[C.ci % list.length], nx = list[(C.ci + 1) % list.length];
+  const win = winRange(C.win);
+  const showNext = C.next && list.length > 1 && (!C.playing || C.beat === ch.beats - 1);
+  const ms = [];
+  for (let s = 0; s < 6; s++) for (let f = 0; f <= FRETS; f++) {
+    const out = win && (f < win[0] || f > win[1]);
+    const t = toneAt(ch, s, f), n = showNext ? toneAt(nx, s, f) : null;
+    if (t) ms.push({ s, f, cat: t.cat, label: t.label, dim: out, common: !!n && !out });
+    else if (n && !out) ms.push({ s, f, cat: n.cat, label: n.label, ghost: true });
+  }
+  cSvg.innerHTML = boardSVG({ markers: ms, win });
+  $("#c-sym").textContent = ch.sym;
+  $("#c-rn").textContent = ch.rn;
+  $("#c-nextlbl").innerHTML = `次 → <b>${nx.sym}</b>`;
+  const inBar = C.beat % 4, barBeats = Math.min(4, ch.beats);
+  $("#c-beats").innerHTML = Array.from({ length: barBeats }, (_, i) => `<i class="${C.playing && i === inBar ? "on" : ""}"></i>`).join("") +
+    `<span>${C.beat + 1}/${ch.beats}拍</span>`;
+  $("#c-chips").innerHTML = list.map((c, i) => `<button type="button" class="chip${i === C.ci ? " on" : ""}" data-i="${i}"><b>${c.sym}</b><small>${c.rn}</small></button>`).join("");
+  $("#c-play").textContent = C.playing ? "■ ストップ" : "▶ スタート";
+}
+function strum(ch, t) {
+  const third = ch.arp.semis[1], sev = ch.arp.semis[3];
+  const root = 40 + ((ch.rpc - 4 + 12) % 12);
+  const place = (pc) => 52 + ((pc - 4 + 12) % 12);
+  const up = [place((ch.rpc + third) % 12), place((ch.rpc + sev) % 12)].sort((a, b) => a - b);
+  pluck(root, t, 0.4);
+  up.forEach((m, i) => pluck(m, t + 0.025 * (i + 1), 0.26));
+}
+let schedTimer = null, nextT = 0, sPos = { ci: 0, beat: 0 }, runId = 0;
+function cSched() {
+  const list = chordList();
+  while (nextT < ctx.currentTime + 0.12) {
+    const { ci, beat } = sPos, ch = list[ci % list.length];
+    if (C.metro) click(nextT, beat % 4 === 0);
+    if (beat === 0 && C.sound) strum(ch, nextT);
+    const id = runId;
+    setTimeout(() => { if (id !== runId) return; C.ci = ci; C.beat = beat; renderChanges(); }, Math.max(0, (nextT - ctx.currentTime) * 1000));
+    nextT += 60 / C.bpm;
+    sPos = beat + 1 >= ch.beats ? { ci: (ci + 1) % list.length, beat: 0 } : { ci, beat: beat + 1 };
+  }
+}
+function cStart() {
+  if (!audio()) return;
+  runId++; C.playing = true; C.beat = 0;
+  sPos = { ci: C.ci, beat: 0 }; nextT = ctx.currentTime + 0.08;
+  clearInterval(schedTimer); schedTimer = setInterval(cSched, 25); cSched();
+  renderChanges();
+}
+function cStop() {
+  runId++; C.playing = false; clearInterval(schedTimer); C.beat = 0; renderChanges();
+}
+function jump(i) {
+  const n = chordList().length;
+  C.ci = ((i % n) + n) % n; C.beat = 0;
+  if (C.playing) { runId++; sPos = { ci: C.ci, beat: 0 }; nextT = ctx.currentTime + 0.05; }
+  else { const list = chordList(); if (C.sound) strum(list[C.ci], 0); }
+  renderChanges();
+}
+setupBoard(cSvg, (s, f) => pluck(midiAt(s, f)));
+$("#c-play").addEventListener("click", () => (C.playing ? cStop() : cStart()));
+$("#c-prev").addEventListener("click", () => jump(C.ci - 1));
+$("#c-fwd").addEventListener("click", () => jump(C.ci + 1));
+$("#c-chips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) jump(+b.dataset.i); });
+$("#c-prog").addEventListener("change", () => { C.prog = +$("#c-prog").value; if (C.playing) cStop(); C.ci = 0; persist(); renderChanges(); });
+$("#c-bpm").addEventListener("input", () => { C.bpm = +$("#c-bpm").value; $("#c-bpmval").textContent = C.bpm; persist(); });
+const cChange = () => {
+  C.key = +$("#c-key").value; C.win = $("#c-win").value; C.label = radioVal("c-label");
+  C.guide = $("#c-guide").checked; C.next = $("#c-next").checked; C.metro = $("#c-metro").checked; C.sound = $("#c-sound").checked;
+  persist(); renderChanges();
+};
+["#c-key", "#c-win", "#c-guide", "#c-next", "#c-metro", "#c-sound"].forEach((s) => $(s).addEventListener("change", cChange));
+document.querySelectorAll('input[name="c-label"]').forEach((el) => el.addEventListener("change", cChange));
+document.addEventListener("keydown", (e) => {
+  if (e.code !== "Space" || $("#v-changes").hidden) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (["input", "select", "button", "textarea"].includes(tag)) return;
+  e.preventDefault(); C.playing ? cStop() : cStart();
+});
+
+/* ================= routing ================= */
+const VIEWS = ["board", "quiz", "changes"];
+function route() {
+  let v = location.hash.slice(1);
+  if (!VIEWS.includes(v)) v = "board";
+  for (const id of VIEWS) $("#v-" + id).hidden = id !== v;
+  document.querySelectorAll("nav.tabs a").forEach((a) => (a.dataset.view === v ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+  if (v !== "changes" && C.playing) cStop();
+  if (v === "quiz" && !Q.cur) nextQ();
+}
+window.addEventListener("hashchange", route);
+renderBoard(); renderChanges(); nextQ(); route();
+})();
+</script>
+<!-- body-wrapper -->
+</body>
+</html>
