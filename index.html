@@ -115,10 +115,10 @@ svg.board { display: block; width: 100%; min-width: 760px; height: auto; -webkit
 .m.c-seventh { --mc: var(--c-seventh); }
 .m.c-ok { --mc: var(--ok); }
 .m.c-bad { --mc: var(--bad); }
-.m.c-target { --mc: var(--nut); }
+.m.c-target, .m.c-plain { --mc: var(--nut); }
 .m circle { fill: var(--mc); stroke: var(--wood); stroke-width: 2; }
 .m text { font: 700 11px var(--f-mono); text-anchor: middle; fill: var(--on-mark); }
-.m.c-third text, .m.c-target text { fill: var(--on-third); }
+.m.c-third text, .m.c-target text, .m.c-plain text { fill: var(--on-third); }
 .m.dim { opacity: .2; }
 .m.ghost circle { fill: var(--wood); stroke: var(--mc); stroke-width: 2; stroke-dasharray: 4 3; }
 .m.ghost text { fill: var(--mc); }
@@ -182,6 +182,14 @@ svg.board { display: block; width: 100%; min-width: 760px; height: auto; -webkit
 .chip.on small { color: var(--accent-ink); }
 .bpmval { font: 700 .95rem var(--f-mono); color: var(--ink); min-width: 3ch; display: inline-block; font-variant-numeric: tabular-nums; }
 
+.forms { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+.form-chip { font: inherit; display: grid; text-align: left; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.form-chip b { font: 700 1.05rem var(--f-display); }
+.form-chip small { font: 500 .7rem var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.form-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.form-chip.on small { color: var(--accent-ink); }
+.answers.five { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 520px; }
+.answers.five button { font: 700 1.2rem var(--f-display); }
 details.guide { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
 details.guide summary { cursor: pointer; font-weight: 700; }
 details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 6px; max-width: 72ch; }
@@ -207,6 +215,7 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
     </div>
     <nav class="tabs" aria-label="モード">
       <a href="#board" data-view="board">指板ビューア</a>
+      <a href="#caged" data-view="caged">CAGED</a>
       <a href="#quiz" data-view="quiz">音名クイズ</a>
       <a href="#changes" data-view="changes">コード進行</a>
     </nav>
@@ -236,6 +245,60 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
       <span><i style="background:var(--c-tension)"></i>テンション・その他</span>
     </div>
     <p class="tip">まずは <b>5フレット幅の1ポジション</b> に絞り、ルート・3度・5度・7度の場所を度数で言えるようにします。次に「音名」に切り替え、同じ形を別のキーへ動かすと、形と音名が結びつきます。押さえた場所をタップすると音が鳴ります。</p>
+  </section>
+
+  <!-- ============ CAGED ============ -->
+  <section id="v-caged" class="panel view" hidden>
+    <div class="controls">
+      <div class="field">モード
+        <div class="seg">
+          <input type="radio" name="k-mode" id="k-mode-view" value="view" checked><label for="k-mode-view">見る</label>
+          <input type="radio" name="k-mode" id="k-mode-shape" value="shape"><label for="k-mode-shape">形は？</label>
+          <input type="radio" name="k-mode" id="k-mode-find" value="find"><label for="k-mode-find">押さえる</label>
+        </div>
+      </div>
+      <label class="field k-viewonly">キー<select id="k-root"></select></label>
+      <div class="field">コード
+        <div class="seg">
+          <input type="radio" name="k-q" id="k-q-maj" value="maj" checked><label for="k-q-maj">メジャー</label>
+          <input type="radio" name="k-q" id="k-q-min" value="min"><label for="k-q-min">マイナー</label>
+        </div>
+      </div>
+      <label class="field k-viewonly">重ねて表示<select id="k-over"></select></label>
+      <div class="field">表示
+        <div class="seg">
+          <input type="radio" name="k-label" id="k-label-deg" value="deg" checked><label for="k-label-deg">度数</label>
+          <input type="radio" name="k-label" id="k-label-note" value="note"><label for="k-label-note">音名</label>
+        </div>
+      </div>
+    </div>
+    <div class="transport k-viewonly">
+      <div class="btns">
+        <button class="btn" id="k-prev" type="button" aria-label="下の形へ">◀</button>
+        <button class="btn" id="k-next" type="button" aria-label="上の形へ">▶</button>
+      </div>
+      <div class="forms" id="k-forms"></div>
+      <button class="btn primary" id="k-cycle" type="button">▶ 5つの形を順に鳴らす</button>
+    </div>
+    <div class="k-quizonly" hidden>
+      <div class="prompt-row">
+        <div class="prompt" id="k-prompt" aria-live="polite">　</div>
+        <div class="feedback" id="k-feedback" aria-live="polite"></div>
+        <button class="btn" id="k-skip" type="button">スキップ</button>
+      </div>
+    </div>
+    <div class="answers five k-shapeonly" id="k-answers" hidden></div>
+    <div class="boardwrap"><svg class="board" id="k-svg" role="img" aria-label="ギター指板"></svg></div>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:var(--c-root)"></i>ルート</span>
+      <span><i style="background:var(--c-third)"></i>3度</span>
+      <span><i style="background:var(--c-fifth)"></i>5度</span>
+      <span><i style="background:var(--c-seventh)"></i>7度</span>
+      <span><i style="background:var(--c-tension)"></i>テンション・その他</span>
+      <span><i style="background:var(--muted);box-shadow:0 0 0 2px var(--nut) inset"></i>コードフォームの音</span>
+    </div>
+    <div class="stats k-quizonly" id="k-stats" hidden></div>
+    <p class="tip" id="k-tip">開放コードの <b>C・A・G・E・D の形</b> を平行移動すると、1つのコードが指板上で5つの形としてつながります(順番は常に C→A→G→E→D→C…)。まず1つのキーで5つの形を低い方から順に押さえ、各形のルートがどの弦にあるかを言えるようにします。次に「重ねて表示」でアルペジオやスケールを出し、その形の枠の中で弾けるようにします。</p>
   </section>
 
   <!-- ============ 音名クイズ ============ -->
@@ -321,6 +384,7 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
     <ol>
       <li><b>音名クイズ 5分</b>：今週は5弦と6弦だけ、など範囲を絞って反射で答えられるまで。</li>
       <li><b>指板ビューア 5分</b>：1ポジションで maj7 / m7 / 7 / m7♭5 のアルペジオを度数を言いながら弾く。</li>
+      <li><b>CAGED 5分</b>(週に数回、指板ビューアと交代で)：1キーで5つの形を順に押さえ、「形は？」クイズで形の名前とルートの弦を即答できるように。</li>
       <li><b>コード進行 10分</b>：ii–V–I をゆっくりのテンポで。ガイドトーンだけ → アルペジオ → スケールの順。慣れたらキーを4度ずつ(C→F→B♭…)動かす。</li>
     </ol>
   </details>
@@ -435,7 +499,7 @@ let saved = {};
 try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch (e) { saved = {}; }
 function persist() {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ b: { root: B.root, shape: B.shape, win: B.win, label: B.label, guide: B.guide }, q: { mode: Q.mode, strings: Q.strings, max: Q.max, stats: Q.stats },
+    localStorage.setItem(STORE_KEY, JSON.stringify({ k: saved.k, b: { root: B.root, shape: B.shape, win: B.win, label: B.label, guide: B.guide }, q: { mode: Q.mode, strings: Q.strings, max: Q.max, stats: Q.stats },
       c: { prog: C.prog, key: C.key, bpm: C.bpm, win: C.win, label: C.label, guide: C.guide, next: C.next, metro: C.metro, sound: C.sound } }));
   } catch (e) { /* storage unavailable */ }
 }
@@ -618,6 +682,216 @@ $("#b-play").addEventListener("click", () => {
     bPlayTimers.push(setTimeout(() => { B.active = key(m.s, m.f); renderBoard(); }, i * step * 1000 + 50));
   });
   bPlayTimers.push(setTimeout(() => { B.active = null; renderBoard(); }, seq.length * step * 1000 + 300));
+});
+
+/* ================= CAGED ================= */
+// frets / degs: index 0 = 1弦(high E) … 5 = 6弦(low E)。値は「ナット(=形の基準フレット)」からのオフセット
+const CAGED_FORMS = {
+  maj: {
+    C: { pc: 0, frets: [0, 1, 0, 2, 3, null], degs: ["3", "1", "5", "3", "1", null] },
+    A: { pc: 9, frets: [0, 2, 2, 2, 0, null], degs: ["5", "3", "1", "5", "1", null] },
+    G: { pc: 7, frets: [3, 0, 0, 0, 2, 3], degs: ["1", "3", "1", "5", "3", "1"] },
+    E: { pc: 4, frets: [0, 0, 1, 2, 2, 0], degs: ["1", "5", "3", "1", "5", "1"] },
+    D: { pc: 2, frets: [2, 3, 2, 0, null, null], degs: ["3", "1", "5", "1", null, null] },
+  },
+  min: {
+    C: { pc: 0, frets: [null, 1, 0, 1, 3, null], degs: [null, "1", "5", "b3", "1", null] },
+    A: { pc: 9, frets: [0, 1, 2, 2, 0, null], degs: ["5", "b3", "1", "5", "1", null] },
+    G: { pc: 7, frets: [3, 3, 0, 0, 1, 3], degs: ["1", "5", "1", "5", "b3", "1"] },
+    E: { pc: 4, frets: [0, 0, 0, 2, 2, 0], degs: ["1", "5", "b3", "1", "5", "1"] },
+    D: { pc: 2, frets: [1, 3, 2, 0, null, null], degs: ["b3", "1", "5", "1", null, null] },
+  },
+};
+const FORM_NAMES = ["C", "A", "G", "E", "D"];
+const ROOT_STRING = { C: "5弦", A: "5弦", G: "6弦", E: "6弦", D: "4弦" };
+// 形の基準フレット(開放コードのナットに当たる位置)。0〜11、さらに12フレ上に収まればそれも返す
+function formBases(rootPc, q, form) {
+  const b = (rootPc - CAGED_FORMS[q][form].pc + 12) % 12;
+  return b + 12 + 3 <= FRETS ? [b, b + 12] : [b];
+}
+function voicing(q, form, b) {
+  const F = CAGED_FORMS[q][form], out = [];
+  for (let s = 0; s < 6; s++) if (F.frets[s] !== null) out.push({ s, f: b + F.frets[s], d: F.degs[s] });
+  return out;
+}
+const formWin = (b) => [Math.max(0, b - 1), b + 3];
+function formsInOrder(rootPc, q) {
+  return FORM_NAMES.map((n) => ({ name: n, b: formBases(rootPc, q, n)[0] })).sort((a, b) => a.b - b.b);
+}
+function strumVoicing(vs, when, gain = 0.3) {
+  const c = audio(); if (!c) return;
+  const t = when || c.currentTime;
+  [...vs].sort((a, b) => b.s - a.s).forEach((v, i) => pluck(midiAt(v.s, v.f), t + i * 0.035, gain));
+}
+
+const sk = saved.k || {};
+const emptyK = () => ({ ok: 0, n: 0, streak: 0, best: 0 });
+const KG = Object.assign({ mode: "view", root: 0, q: "maj", form: "C", over: -1, label: "deg" }, sk,
+  { stats: Object.assign({ shape: emptyK(), find: emptyK() }, sk.stats || {}), cur: null, lock: false, result: null, tap: null, timer: null, cycleTimers: [] });
+if (KG.over >= ITEMS.length) KG.over = -1;
+const kSvg = $("#k-svg");
+fillRoots($("#k-root"));
+$("#k-over").innerHTML = `<option value="-1">なし (フォームだけ)</option>` + GROUPS.map((g) => `<optgroup label="${g.label}">` +
+  g.items.map((it) => `<option value="${ITEMS.indexOf(it)}">${it.name}</option>`).join("") + `</optgroup>`).join("");
+$("#k-root").value = KG.root; $("#k-over").value = KG.over;
+setRadio("k-mode", KG.mode); setRadio("k-q", KG.q); setRadio("k-label", KG.label);
+$("#k-answers").innerHTML = FORM_NAMES.map((n) => `<button type="button" data-form="${n}" aria-label="${n}形">${n}</button>`).join("");
+const kPersist = () => { saved.k = { mode: KG.mode, root: KG.root, q: KG.q, form: KG.form, over: KG.over, label: KG.label, stats: KG.stats }; persist(); };
+const qSuffix = (q) => (q === "min" ? "m" : "");
+const vLabel = (rootName, d) => (KG.label === "deg" ? prettyDeg(d) : spell(rootName, DEG_SEMI[d], d));
+
+function kMarkersView() {
+  const rootName = ROOT_NAMES[KG.root], rpc = namePc(rootName);
+  const b = formBases(rpc, KG.q, KG.form)[0], win = formWin(b);
+  const vs = voicing(KG.q, KG.form, b), vKeys = new Set(vs.map((v) => key(v.s, v.f)));
+  const ms = [];
+  if (KG.over < 0) {
+    // 他の4つの形も薄く表示して、つながりを見せる
+    for (const n of FORM_NAMES) if (n !== KG.form) for (const bb of formBases(rpc, KG.q, n))
+      for (const v of voicing(KG.q, n, bb)) if (!vKeys.has(key(v.s, v.f)) && !ms.some((m) => m.s === v.s && m.f === v.f))
+        ms.push({ s: v.s, f: v.f, cat: category(v.d), label: vLabel(rootName, v.d), dim: true });
+    for (const v of vs) ms.push({ s: v.s, f: v.f, cat: category(v.d), label: vLabel(rootName, v.d), common: true });
+  } else {
+    const it = ITEMS[KG.over];
+    for (let s = 0; s < 6; s++) for (let f = 0; f <= FRETS; f++) {
+      const i = it.semis.indexOf((pcAt(s, f) - rpc + 12) % 12);
+      if (i < 0) continue;
+      const d = it.degs[i], out = f < win[0] || f > win[1];
+      ms.push({ s, f, cat: category(d), dim: out, common: vKeys.has(key(s, f)),
+        label: KG.label === "deg" ? prettyDeg(d) : spell(rootName, it.semis[i], d) });
+    }
+  }
+  return { ms, win };
+}
+function renderCaged(scroll) {
+  const quiz = KG.mode !== "view";
+  document.querySelectorAll("#v-caged .k-viewonly").forEach((el) => (el.hidden = quiz));
+  document.querySelectorAll("#v-caged .k-quizonly").forEach((el) => (el.hidden = !quiz));
+  $("#k-answers").hidden = KG.mode !== "shape";
+  let ms = [], win = null;
+  if (!quiz) {
+    const rpc = KG.root, order = formsInOrder(rpc, KG.q), rn = ROOT_NAMES[KG.root] + qSuffix(KG.q);
+    $("#k-forms").innerHTML = order.map((o) => { const w = formWin(o.b);
+      return `<button type="button" class="form-chip${o.name === KG.form ? " on" : ""}" data-form="${o.name}"><b>${o.name}形</b><small>${w[0]}–${w[1]}フレ · ルート${ROOT_STRING[o.name]}</small></button>`; }).join("");
+    ({ ms, win } = kMarkersView());
+    $("#k-svg").setAttribute("aria-label", `${rn} の ${KG.form}形`);
+  } else {
+    const fb = $("#k-feedback"), pr = $("#k-prompt"), c = KG.cur;
+    fb.className = "feedback"; fb.textContent = "";
+    const rootName = c.rootName, chord = rootName + qSuffix(KG.q);
+    if (KG.mode === "shape") {
+      pr.innerHTML = `この押さえ方は何形？`;
+      for (const v of c.vs) ms.push(KG.result ? { s: v.s, f: v.f, cat: category(v.d), label: vLabel(rootName, v.d) } : { s: v.s, f: v.f, cat: "plain", label: "" });
+      if (KG.result) {
+        fb.className = "feedback " + (KG.result.ok ? "ok" : "bad");
+        fb.textContent = (KG.result.ok ? "正解！ " : `正解は ${c.form}形。 `) + `${chord} の ${c.form}形 (ルートは${ROOT_STRING[c.form]})`;
+      }
+      document.querySelectorAll("#k-answers button").forEach((bt) => {
+        bt.classList.toggle("good", !!KG.result && bt.dataset.form === c.form);
+        bt.classList.toggle("wrong", !!KG.result && !KG.result.ok && bt.dataset.form === KG.result.chosen);
+      });
+    } else {
+      pr.innerHTML = `<span class="nn">${chord}</span> の <span class="nn">${c.form}形</span>、ルートをタップ`;
+      if (KG.result) {
+        for (const v of c.shown) ms.push({ s: v.s, f: v.f, cat: category(v.d), label: vLabel(rootName, v.d), common: true });
+        if (!KG.result.ok && KG.tap) ms.push({ s: KG.tap.s, f: KG.tap.f, cat: "bad", label: "×" });
+        fb.className = "feedback " + (KG.result.ok ? "ok" : "bad");
+        fb.textContent = KG.result.ok ? "正解！" : `ここが ${c.form}形 です (ルートは${ROOT_STRING[c.form]})`;
+      }
+    }
+    if (KG.result && c.shown) win = formWin(c.shownBase);
+    const st = KG.stats[KG.mode];
+    $("#k-stats").innerHTML = `<span>正解率<b>${st.n ? Math.round((st.ok / st.n) * 100) + "%" : "—"}</b></span><span>回答数<b>${st.n}</b></span><span>連続正解<b>${st.streak}</b></span><span>ベスト<b>${st.best}</b></span>`;
+  }
+  kSvg.innerHTML = boardSVG({ markers: ms, win });
+  if (scroll) {
+    const fs = !quiz ? win : KG.mode === "shape" && KG.cur ? [Math.min(...KG.cur.vs.map((v) => v.f)), Math.max(...KG.cur.vs.map((v) => v.f))] : null;
+    if (fs) scrollToFrets(kSvg, fs[0], fs[1]);
+  }
+}
+function kNextQ() {
+  clearTimeout(KG.timer);
+  KG.lock = false; KG.result = null; KG.tap = null;
+  let root, form, tries = 0;
+  do { root = Math.floor(Math.random() * 12); form = FORM_NAMES[Math.floor(Math.random() * 5)]; tries++; }
+  while (KG.cur && KG.cur.root === root && KG.cur.form === form && tries < 10);
+  const rootName = ROOT_NAMES[root], bases = formBases(root, KG.q, form);
+  const b = bases[Math.floor(Math.random() * bases.length)];
+  KG.cur = { root, rootName, form, bases, vs: voicing(KG.q, form, b), base: b };
+  if (KG.mode === "shape") { KG.cur.shown = KG.cur.vs; KG.cur.shownBase = b; }
+  renderCaged(true);
+}
+function kRecord(ok) {
+  const st = KG.stats[KG.mode];
+  st.n++; if (ok) { st.ok++; st.streak++; st.best = Math.max(st.best, st.streak); } else st.streak = 0;
+  kPersist();
+}
+function kAnswerShape(form) {
+  if (KG.mode !== "shape" || KG.lock || !KG.cur) return;
+  KG.lock = true;
+  const ok = form === KG.cur.form;
+  kRecord(ok); KG.result = { ok, chosen: form };
+  strumVoicing(KG.cur.vs);
+  renderCaged();
+  KG.timer = setTimeout(kNextQ, ok ? 1600 : 2600);
+}
+function kTap(s, f) {
+  pluck(midiAt(s, f));
+  if (KG.mode !== "find" || KG.lock || !KG.cur) return;
+  KG.lock = true;
+  const c = KG.cur;
+  // その形のどちらのオクターブでも、構成音のルートを押せば正解
+  let hit = null;
+  for (const b of c.bases) for (const v of voicing(KG.q, c.form, b)) if (v.s === s && v.f === f && v.d === "1") hit = b;
+  const ok = hit !== null;
+  const showB = ok ? hit : c.bases.reduce((a, b) => (Math.abs(b + 1 - f) < Math.abs(a + 1 - f) ? b : a));
+  c.shown = voicing(KG.q, c.form, showB); c.shownBase = showB;
+  KG.tap = { s, f }; kRecord(ok); KG.result = { ok };
+  setTimeout(() => strumVoicing(c.shown), 250);
+  renderCaged();
+  KG.timer = setTimeout(kNextQ, ok ? 1700 : 2800);
+}
+function kStopCycle() { KG.cycleTimers.forEach(clearTimeout); KG.cycleTimers = []; $("#k-cycle").textContent = "▶ 5つの形を順に鳴らす"; }
+function kStepForm(dir) {
+  const order = formsInOrder(KG.root, KG.q), i = order.findIndex((o) => o.name === KG.form);
+  KG.form = order[(i + dir + 5) % 5].name; kPersist(); renderCaged(true);
+  const b = formBases(KG.root, KG.q, KG.form)[0]; strumVoicing(voicing(KG.q, KG.form, b));
+}
+setupBoard(kSvg, kTap);
+$("#k-forms").addEventListener("click", (e) => {
+  const bt = e.target.closest(".form-chip"); if (!bt) return;
+  kStopCycle(); KG.form = bt.dataset.form; kPersist(); renderCaged(true);
+  strumVoicing(voicing(KG.q, KG.form, formBases(KG.root, KG.q, KG.form)[0]));
+});
+$("#k-prev").addEventListener("click", () => { kStopCycle(); kStepForm(-1); });
+$("#k-next").addEventListener("click", () => { kStopCycle(); kStepForm(1); });
+$("#k-cycle").addEventListener("click", () => {
+  if (KG.cycleTimers.length) { kStopCycle(); return; }
+  if (!audio()) return;
+  const order = formsInOrder(KG.root, KG.q), step = 1400;
+  $("#k-cycle").textContent = "■ ストップ";
+  order.forEach((o, i) => KG.cycleTimers.push(setTimeout(() => {
+    KG.form = o.name; renderCaged(true); strumVoicing(voicing(KG.q, o.name, o.b));
+  }, i * step)));
+  KG.cycleTimers.push(setTimeout(() => { kStopCycle(); kPersist(); }, order.length * step));
+});
+$("#k-answers").addEventListener("click", (e) => { const bt = e.target.closest("button"); if (bt) kAnswerShape(bt.dataset.form); });
+$("#k-skip").addEventListener("click", kNextQ);
+const kChange = (e) => {
+  const prevMode = KG.mode, prevQ = KG.q;
+  KG.mode = radioVal("k-mode"); KG.q = radioVal("k-q"); KG.label = radioVal("k-label");
+  KG.root = +$("#k-root").value; KG.over = +$("#k-over").value;
+  kStopCycle(); kPersist();
+  if (KG.mode !== "view" && (KG.mode !== prevMode || KG.q !== prevQ || !KG.cur)) kNextQ();
+  else renderCaged(e && (e.target.id === "k-root" || e.target.name === "k-q"));
+};
+["#k-root", "#k-over"].forEach((sel) => $(sel).addEventListener("change", kChange));
+document.querySelectorAll('#v-caged input[type="radio"]').forEach((el) => el.addEventListener("change", kChange));
+document.addEventListener("keydown", (e) => {
+  if ($("#v-caged").hidden || KG.mode !== "shape" || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toUpperCase();
+  const t = e.target, typing = t.tagName === "SELECT" || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && !["radio", "checkbox"].includes(t.type));
+  if (FORM_NAMES.includes(k) && !typing) { e.preventDefault(); kAnswerShape(k); }
 });
 
 /* ================= 音名クイズ ================= */
@@ -914,7 +1188,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ================= routing ================= */
-const VIEWS = ["board", "quiz", "changes"];
+const VIEWS = ["board", "caged", "quiz", "changes"];
 function route() {
   let v = location.hash.slice(1);
   if (!VIEWS.includes(v)) v = "board";
@@ -922,6 +1196,8 @@ function route() {
   document.querySelectorAll("nav.tabs a").forEach((a) => (a.dataset.view === v ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
   if (v !== "changes" && C.playing) cStop();
   if (v === "quiz" && !Q.cur) nextQ();
+  if (v !== "caged") kStopCycle();
+  if (v === "caged") { if (KG.mode !== "view" && !KG.cur) kNextQ(); else renderCaged(true); }
 }
 window.addEventListener("hashchange", route);
 keyLabels(); renderBoard(); renderChanges(); nextQ(); route();
