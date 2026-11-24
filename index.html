@@ -21,6 +21,7 @@
   --accent-ink: #ffffff;
   --ok: #1e9a55;
   --bad: #d63f2b;
+  --on-fill: #ffffff;
 
   /* the instrument itself: same in both themes */
   --wood: #3a2419;
@@ -43,13 +44,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #10141a; --surface: #192029; --ink: #e6eaf0; --muted: #96a1ae; --line: #2b3440;
-    --accent: #6fa0ff; --accent-ink: #0b1220; --ok: #3cc27a; --bad: #ff6a52;
+    --accent: #6fa0ff; --accent-ink: #0b1220; --ok: #23874d; --bad: #c7432f;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10141a; --surface: #192029; --ink: #e6eaf0; --muted: #96a1ae; --line: #2b3440;
-  --accent: #6fa0ff; --accent-ink: #0b1220; --ok: #3cc27a; --bad: #ff6a52;
+  --accent: #6fa0ff; --accent-ink: #0b1220; --ok: #23874d; --bad: #c7432f;
   color-scheme: dark;
 }
 
@@ -146,13 +147,13 @@ svg.board { display: block; width: 100%; min-width: 760px; height: auto; -webkit
 }
 .answers button.blk { background: var(--surface); }
 .answers button:hover { border-color: var(--accent); }
-.answers button.good { background: var(--ok); color: var(--surface); border-color: var(--ok); }
-.answers button.wrong { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+.answers button.good { background: var(--ok); color: var(--on-fill); border-color: var(--ok); }
+.answers button.wrong { background: var(--bad); color: var(--on-fill); border-color: var(--bad); }
 .stats { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: baseline; font-size: .85rem; color: var(--muted); }
 .stats b { font: 700 1.15rem var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; margin-left: 4px; }
 .heat { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; }
 .heat div { border-radius: 6px; padding: 5px 2px; text-align: center; font: 500 .7rem/1.25 var(--f-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-.heat div.has { color: var(--surface); border-color: transparent; }
+.heat div.has { color: var(--on-fill); border-color: transparent; }
 .heat small { display: block; opacity: .85; }
 .strings { display: inline-flex; gap: 4px; }
 .strings label { display: grid; place-items: center; width: 34px; height: 32px; border: 1px solid var(--line); border-radius: 8px; font: 700 .85rem var(--f-mono); cursor: pointer; background: var(--bg); color: var(--muted); }
@@ -245,6 +246,7 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
           <input type="radio" name="q-mode" id="q-mode-name" value="name" checked><label for="q-mode-name">この音は？</label>
           <input type="radio" name="q-mode" id="q-mode-find" value="find"><label for="q-mode-find">弦で探す</label>
           <input type="radio" name="q-mode" id="q-mode-all" value="all"><label for="q-mode-all">全部探す</label>
+          <input type="radio" name="q-mode" id="q-mode-interval" value="interval"><label for="q-mode-interval">度数は？</label>
         </div>
       </div>
       <div class="field">出題する弦
@@ -268,7 +270,7 @@ details.guide ol { margin: 10px 0 4px; padding-left: 1.3em; display: grid; gap: 
     <div class="boardwrap"><svg class="board" id="q-svg" role="img" aria-label="ギター指板"></svg></div>
     <div class="stats" id="q-stats"></div>
     <div class="heat" id="q-heat" aria-label="音名ごとの正解率"></div>
-    <p class="tip">1日5分、最初は弦を1〜2本に絞り、正解率が90%を超えたら弦を増やします。<b>全部探す</b> は1つの音を全弦で見つける練習で、指板全体の地図づくりに効きます。答える前に音名を声に出すと定着が速くなります。</p>
+    <p class="tip">1日5分、最初は弦を1〜2本に絞り、正解率が90%を超えたら弦を増やします。<b>全部探す</b> は1つの音を全弦で見つける練習で、指板全体の地図づくりに効きます。<b>度数は？</b> はルートからの距離を形で覚える練習で、アドリブで「今のコードの3度はどこ？」に即答する力になります(答えると2音が鳴るので耳も鍛えられます)。答える前に音名を声に出すと定着が速くなります。</p>
   </section>
 
   <!-- ============ コード進行 ============ -->
@@ -356,9 +358,13 @@ function spell(rootName, semis, deg) {
   const pc = (namePc(rootName) + semis) % 12;
   let diff = (((pc - LETTER_PC[li]) % 12) + 12) % 12;
   if (diff > 6) diff -= 12;
-  const acc = { "0": "", "1": "♯", "-1": "♭", "2": "𝄪", "-2": "𝄫" }[diff];
+  if (diff === 2) return SHARP[pc];   // 𝄪 → 読みやすい異名同音
+  if (diff === -2) return FLAT[pc];   // 𝄫 → 読みやすい異名同音
+  const acc = { "0": "", "1": "♯", "-1": "♭" }[diff];
   return acc === undefined ? FLAT[pc] : LETTERS[li] + acc;
 }
+// コードのルートは B♯ / E♯ / C♭ / F♭ を避けて一般的な表記に
+const chordRoot = (n) => ({ "B♯": "C", "E♯": "F", "C♭": "B", "F♭": "E" })[n] || n;
 function category(d) {
   if (d === "1") return "root";
   const n = degNum(d);
@@ -412,15 +418,16 @@ const ITEMS = GROUPS.flatMap((g) => g.items);
 
 const PROGS = [
   { name: "ii–V–I (メジャー)", chords: [["2","m7",4],["5","7",4],["1","maj7",8]] },
-  { name: "ii–V–i (マイナー)", chords: [["2","m7b5",4],["5","7",4],["1","m6",8]] },
+  { name: "ii–V–i (マイナー)", minor: true, chords: [["2","m7b5",4],["5","7",4],["1","m6",8]] },
   { name: "I–vi–ii–V (循環)", chords: [["1","maj7",4],["6","m7",4],["2","m7",4],["5","7",4]] },
   { name: "iii–VI–ii–V–I", chords: [["3","m7",4],["6","7",4],["2","m7",4],["5","7",4],["1","maj7",8]] },
   { name: "ジャズ・ブルース (12小節)", chords: [["1","7",4],["4","7",4],["1","7",4],["5","m7",2],["1","7",2],
       ["4","7",4],["#4","dim7",4],["1","7",4],["6","7",4],["2","m7",4],["5","7",4],["1","7",2],["6","7",2],["2","m7",2],["5","7",2]] },
-  { name: "マイナー・ブルース (12小節)", chords: [["1","m7",16],["4","m7",8],["1","m7",8],["b6","7",4],["5","7",4],["1","m7",4],["5","7",4]] },
-  { name: "4度進行 (マイナー・キー)", chords: [["4","m7",4],["b7","7",4],["b3","maj7",4],["b6","maj7",4],["2","m7b5",4],["5","7",4],["1","m6",8]] },
+  { name: "マイナー・ブルース (12小節)", minor: true, chords: [["1","m7",16],["4","m7",8],["1","m7",8],["b6","7",4],["5","7",4],["1","m7",4],["5","7",4]] },
+  { name: "4度進行 (マイナー・キー)", minor: true, chords: [["4","m7",4],["b7","7",4],["b3","maj7",4],["b6","maj7",4],["2","m7b5",4],["5","7",4],["1","m6",8]] },
 ];
 const ROMAN = ["I","II","III","IV","V","VI","VII"];
+const INTERVALS = ["1","♭2","2","♭3","3","4","♯4\n♭5","5","♭6","6","♭7","7"];
 
 /* ---------------- storage ---------------- */
 const STORE_KEY = "jazz-fretboard-v1";
@@ -428,7 +435,7 @@ let saved = {};
 try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch (e) { saved = {}; }
 function persist() {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ b: B, q: { mode: Q.mode, strings: Q.strings, max: Q.max, stats: Q.stats },
+    localStorage.setItem(STORE_KEY, JSON.stringify({ b: { root: B.root, shape: B.shape, win: B.win, label: B.label, guide: B.guide }, q: { mode: Q.mode, strings: Q.strings, max: Q.max, stats: Q.stats },
       c: { prog: C.prog, key: C.key, bpm: C.bpm, win: C.win, label: C.label, guide: C.guide, next: C.next, metro: C.metro, sound: C.sound } }));
   } catch (e) { /* storage unavailable */ }
 }
@@ -534,6 +541,15 @@ function setupBoard(svg, onTap) {
     if (t) onTap(+t.dataset.s, +t.dataset.f);
   });
 }
+function scrollToFrets(svg, a, b) {
+  const wrap = svg.parentElement;
+  if (wrap.scrollWidth <= wrap.clientWidth + 1) return;
+  const vb = svg.viewBox.baseVal, k = svg.clientWidth / vb.width;
+  const x1 = ((a === 0 ? NUT - 50 : fx(a - 1)) - vb.x) * k, x2 = (fx(b) - vb.x) * k;
+  if (x1 >= wrap.scrollLeft && x2 <= wrap.scrollLeft + wrap.clientWidth) return;
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  wrap.scrollTo({ left: Math.max(0, (x1 + x2) / 2 - wrap.clientWidth / 2), behavior: reduce ? "auto" : "smooth" });
+}
 function winOptions(sel) {
   sel.innerHTML = `<option value="all">指板全体</option>` +
     Array.from({ length: 12 }, (_, a) => `<option value="${a}">${a === 0 ? "開放" : a}〜${a + 4}フレット</option>`).join("");
@@ -576,6 +592,7 @@ setupBoard(bSvg, (s, f) => { pluck(midiAt(s, f)); B.active = key(s, f); renderBo
 const bChange = () => {
   B.root = +$("#b-root").value; B.shape = +$("#b-shape").value; B.win = $("#b-win").value;
   B.label = radioVal("b-label"); B.guide = $("#b-guide").checked; renderBoard(); persist();
+  const w = winRange(B.win); if (w) scrollToFrets(bSvg, w[0], w[1]);
 };
 ["#b-root", "#b-shape", "#b-win", "#b-guide"].forEach((s) => $(s).addEventListener("change", bChange));
 document.querySelectorAll('input[name="b-label"]').forEach((el) => el.addEventListener("change", bChange));
@@ -610,7 +627,7 @@ const Q = {
   mode: sq.mode || "name",
   strings: Array.isArray(sq.strings) && sq.strings.length === 6 ? sq.strings : [true, true, true, true, true, true],
   max: sq.max || 12,
-  stats: Object.assign({ name: emptyStats(), find: emptyStats(), all: emptyStats() }, sq.stats || {}),
+  stats: Object.assign({ name: emptyStats(), find: emptyStats(), all: emptyStats(), interval: emptyStats() }, sq.stats || {}),
   cur: null, lock: false, result: null, wrong: null, found: new Set(), miss: 0, t0: 0, prevKey: null, timer: null,
 };
 const qSvg = $("#q-svg");
@@ -618,8 +635,12 @@ $("#q-strings").innerHTML = Q.strings.map((on, s) =>
   `<label title="${s + 1}弦 (${SHARP[TUNING[s] % 12]})"><input type="checkbox" data-s="${s}"${on ? " checked" : ""}><span>${s + 1}</span></label>`).join("");
 $("#q-max").value = String(Q.max);
 setRadio("q-mode", Q.mode);
-$("#q-answers").innerHTML = ENH.map((n, pc) =>
-  `<button type="button" data-pc="${pc}" class="${n.includes("\n") ? "blk" : ""}" aria-label="${n.replace("\n", " / ")}">${n}</button>`).join("");
+const answerLabels = () => (Q.mode === "interval" ? INTERVALS : ENH);
+function drawAnswers() {
+  $("#q-answers").innerHTML = answerLabels().map((n, v) =>
+    `<button type="button" data-pc="${v}" class="${ENH[v].includes("\n") ? "blk" : ""}" aria-label="${n.replace("\n", " / ")}">${n}</button>`).join("");
+}
+drawAnswers();
 
 const randName = (pc) => (SHARP[pc] === FLAT[pc] ? SHARP[pc] : Math.random() < 0.5 ? SHARP[pc] : FLAT[pc]);
 const allowed = () => {
@@ -643,6 +664,13 @@ function nextQ() {
   const pc = pcAt(p.s, p.f);
   if (Q.mode === "name") Q.cur = { s: p.s, f: p.f, pc };
   else if (Q.mode === "find") Q.cur = { s: p.s, pc, name: randName(pc) };
+  else if (Q.mode === "interval") {
+    // ルートから同じポジション内(±4フレット・3弦以内)にある音を出題
+    const near = pos.filter((q) => Math.abs(q.f - p.f) <= 4 && Math.abs(q.s - p.s) <= 3 && !(q.s === p.s && q.f === p.f));
+    const t = near[Math.floor(Math.random() * near.length)];
+    if (!t) { Q.prevKey = null; return nextQ(); }
+    Q.cur = { s: p.s, f: p.f, ts: t.s, tf: t.f, pc: (pcAt(t.s, t.f) - pc + 12) % 12 };
+  }
   else Q.cur = { pc, name: randName(pc), targets: pos.filter((q) => pcAt(q.s, q.f) === pc).map((q) => key(q.s, q.f)) };
   Q.t0 = performance.now();
   renderQuiz();
@@ -656,12 +684,13 @@ function record(pc, ok) {
   persist();
 }
 function answerName(pc) {
-  if (Q.lock || !Q.cur || Q.mode !== "name") return;
+  if (Q.lock || !Q.cur || (Q.mode !== "name" && Q.mode !== "interval")) return;
   Q.lock = true;
   const ok = pc === Q.cur.pc;
   record(Q.cur.pc, ok);
   Q.result = { ok, chosen: pc };
-  pluck(midiAt(Q.cur.s, Q.cur.f));
+  if (Q.mode === "interval") { const c = audio(); pluck(midiAt(Q.cur.s, Q.cur.f)); if (c) pluck(midiAt(Q.cur.ts, Q.cur.tf), c.currentTime + 0.35); }
+  else pluck(midiAt(Q.cur.s, Q.cur.f));
   renderQuiz();
   Q.timer = setTimeout(nextQ, ok ? 700 : 1600);
 }
@@ -703,7 +732,7 @@ function renderQuiz() {
   const pr = $("#q-prompt"), fb = $("#q-feedback");
   const ms = [];
   const offStrings = Q.strings.map((x) => !x);
-  $("#q-answers").hidden = Q.mode !== "name";
+  $("#q-answers").hidden = Q.mode !== "name" && Q.mode !== "interval";
   fb.className = "feedback"; fb.textContent = "";
   if (!Q.cur) {
     pr.textContent = "出題する弦を1本以上選んでください";
@@ -714,6 +743,14 @@ function renderQuiz() {
       fb.className = "feedback " + (Q.result.ok ? "ok" : "bad");
       fb.textContent = Q.result.ok ? "正解！" : `正解は ${ENH[Q.cur.pc].replace("\n", " / ")}`;
     } else ms.push({ s: Q.cur.s, f: Q.cur.f, cat: "target", label: "?" });
+  } else if (Q.mode === "interval") {
+    pr.innerHTML = `赤いルートから見て <span class="nn">?</span> は何度？`;
+    ms.push({ s: Q.cur.s, f: Q.cur.f, cat: "root", label: "1" });
+    if (Q.result) {
+      ms.push({ s: Q.cur.ts, f: Q.cur.tf, cat: Q.result.ok ? "ok" : "bad", label: INTERVALS[Q.cur.pc].split("\n")[0] });
+      fb.className = "feedback " + (Q.result.ok ? "ok" : "bad");
+      fb.textContent = Q.result.ok ? "正解！" : `正解は ${INTERVALS[Q.cur.pc].replace("\n", " / ")}`;
+    } else ms.push({ s: Q.cur.ts, f: Q.cur.tf, cat: "target", label: "?" });
   } else if (Q.mode === "find") {
     pr.innerHTML = `<span class="nn">${Q.cur.s + 1}弦</span> で <span class="nn">${Q.cur.name}</span> を探そう`;
     if (Q.result) {
@@ -731,10 +768,15 @@ function renderQuiz() {
   }
   document.querySelectorAll("#q-answers button").forEach((b) => {
     const pc = +b.dataset.pc;
-    b.classList.toggle("good", !!(Q.result && Q.mode === "name" && pc === Q.cur.pc));
-    b.classList.toggle("wrong", !!(Q.result && Q.mode === "name" && !Q.result.ok && pc === Q.result.chosen));
+    const ans = Q.mode === "name" || Q.mode === "interval";
+    b.classList.toggle("good", !!(Q.result && ans && pc === Q.cur.pc));
+    b.classList.toggle("wrong", !!(Q.result && ans && !Q.result.ok && pc === Q.result.chosen));
   });
   qSvg.innerHTML = boardSVG({ markers: ms, win: Q.max < FRETS ? [0, Q.max] : null, offStrings });
+  if (Q.cur && !Q.result) {
+    const fs = Q.mode === "interval" ? [Q.cur.f, Q.cur.tf] : Q.mode === "name" ? [Q.cur.f] : null;
+    if (fs) scrollToFrets(qSvg, Math.min(...fs), Math.max(...fs));
+  }
   renderStats();
 }
 function renderStats() {
@@ -742,15 +784,16 @@ function renderStats() {
   const pct = st.n ? Math.round((st.ok / st.n) * 100) + "%" : "—";
   const avg = st.n ? (st.time / st.n / 1000).toFixed(1) + "秒" : "—";
   $("#q-stats").innerHTML = `<span>正解率<b>${pct}</b></span><span>回答数<b>${st.n}</b></span><span>平均時間<b>${avg}</b></span><span>連続正解<b>${st.streak}</b></span><span>ベスト<b>${st.best}</b></span>`;
+  const L = answerLabels();
   $("#q-heat").innerHTML = st.pc.map(([ok, n], pc) => {
-    if (!n) return `<div title="まだ出題なし">${ENH[pc].replace("\n", "/")}<small>—</small></div>`;
+    if (!n) return `<div title="まだ出題なし">${L[pc].replace("\n", "/")}<small>—</small></div>`;
     const p = Math.round((ok / n) * 100);
-    return `<div class="has" style="background:color-mix(in oklab, var(--ok) ${p}%, var(--bad))" title="${ok}/${n}">${ENH[pc].replace("\n", "/")}<small>${p}%</small></div>`;
+    return `<div class="has" style="background:color-mix(in oklab, var(--ok) ${p}%, var(--bad))" title="${ok}/${n}">${L[pc].replace("\n", "/")}<small>${p}%</small></div>`;
   }).join("");
 }
 setupBoard(qSvg, tapQuiz);
 $("#q-answers").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) answerName(+b.dataset.pc); });
-document.querySelectorAll('input[name="q-mode"]').forEach((el) => el.addEventListener("change", () => { Q.mode = radioVal("q-mode"); persist(); nextQ(); }));
+document.querySelectorAll('input[name="q-mode"]').forEach((el) => el.addEventListener("change", () => { Q.mode = radioVal("q-mode"); drawAnswers(); persist(); nextQ(); }));
 $("#q-strings").addEventListener("change", (e) => { Q.strings[+e.target.dataset.s] = e.target.checked; persist(); nextQ(); });
 $("#q-max").addEventListener("change", () => { Q.max = +$("#q-max").value; persist(); nextQ(); });
 $("#q-skip").addEventListener("click", nextQ);
@@ -769,10 +812,14 @@ $("#c-bpm").value = C.bpm; $("#c-bpmval").textContent = C.bpm;
 setRadio("c-label", C.label);
 $("#c-guide").checked = C.guide; $("#c-next").checked = C.next; $("#c-metro").checked = C.metro; $("#c-sound").checked = C.sound;
 
+function keyLabels() {
+  const m = PROGS[C.prog].minor ? "m" : "";
+  [...$("#c-key").options].forEach((o, i) => { o.textContent = ROOT_NAMES[i] + m + (m ? " (マイナー)" : " (メジャー)"); });
+}
 function chordList() {
   const keyName = ROOT_NAMES[C.key];
   return PROGS[C.prog].chords.map(([deg, q, beats]) => {
-    const arp = ARPS[q], rootName = spell(keyName, DEG_SEMI[deg], deg);
+    const arp = ARPS[q], rootName = chordRoot(spell(keyName, DEG_SEMI[deg], deg));
     const acc = prettyDeg(deg.replace(/\d+/, "")), r = ROMAN[degNum(deg) - 1];
     return { rootName, rpc: namePc(rootName), arp, beats, sym: rootName + arp.suffix, rn: acc + (arp.minor ? r.toLowerCase() : r) + arp.rn };
   });
@@ -816,6 +863,7 @@ function strum(ch, t) {
 let schedTimer = null, nextT = 0, sPos = { ci: 0, beat: 0 }, runId = 0;
 function cSched() {
   const list = chordList();
+  if (nextT < ctx.currentTime - 0.03) nextT = ctx.currentTime + 0.05; // タブ復帰時に溜まった拍を一気に鳴らさない
   while (nextT < ctx.currentTime + 0.12) {
     const { ci, beat } = sPos, ch = list[ci % list.length];
     if (C.metro) click(nextT, beat % 4 === 0);
@@ -848,12 +896,13 @@ $("#c-play").addEventListener("click", () => (C.playing ? cStop() : cStart()));
 $("#c-prev").addEventListener("click", () => jump(C.ci - 1));
 $("#c-fwd").addEventListener("click", () => jump(C.ci + 1));
 $("#c-chips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) jump(+b.dataset.i); });
-$("#c-prog").addEventListener("change", () => { C.prog = +$("#c-prog").value; if (C.playing) cStop(); C.ci = 0; persist(); renderChanges(); });
+$("#c-prog").addEventListener("change", () => { C.prog = +$("#c-prog").value; if (C.playing) cStop(); C.ci = 0; keyLabels(); persist(); renderChanges(); });
 $("#c-bpm").addEventListener("input", () => { C.bpm = +$("#c-bpm").value; $("#c-bpmval").textContent = C.bpm; persist(); });
 const cChange = () => {
   C.key = +$("#c-key").value; C.win = $("#c-win").value; C.label = radioVal("c-label");
   C.guide = $("#c-guide").checked; C.next = $("#c-next").checked; C.metro = $("#c-metro").checked; C.sound = $("#c-sound").checked;
   persist(); renderChanges();
+  const w = winRange(C.win); if (w) scrollToFrets(cSvg, w[0], w[1]);
 };
 ["#c-key", "#c-win", "#c-guide", "#c-next", "#c-metro", "#c-sound"].forEach((s) => $(s).addEventListener("change", cChange));
 document.querySelectorAll('input[name="c-label"]').forEach((el) => el.addEventListener("change", cChange));
@@ -875,7 +924,7 @@ function route() {
   if (v === "quiz" && !Q.cur) nextQ();
 }
 window.addEventListener("hashchange", route);
-renderBoard(); renderChanges(); nextQ(); route();
+keyLabels(); renderBoard(); renderChanges(); nextQ(); route();
 })();
 </script>
 <!-- body-wrapper -->
